@@ -1,0 +1,20 @@
+{
+  "name": "afb-rust",
+  "no-ldpaths": true,
+  "port": 1234,
+  "alias": ["/devtools:/usr/share/afb-ui-devtools/binder"],
+  "monitoring": true,
+  "tracereq":"all",
+
+  "binding": [
+    {
+        "uid": "linky-meeter",
+        "api": "linky",
+        "path": "${CARGO_TARGET_DIR}debug/libafb_linky.so",
+        "info": "Linky French meeter api",
+        "device" : "/dev/ttyUSB0",
+        "speed": 9600,
+        "parity": "even"
+    }
+  ]
+}

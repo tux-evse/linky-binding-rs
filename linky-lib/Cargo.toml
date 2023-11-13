@@ -1,0 +1,22 @@
+[package]
+name = "liblinky"
+version = "0.0.1"
+edition = "2021"
+authors = ["Fulup Le Foll <fulup@iot.bzh>"]
+publish = false
+build = "capi/build.rs"
+
+[dependencies]
+afbv4 = {git= "https://github.com/redpesk-common/afb-librust", branch="master", optional = true}
+nom = { version = "7", features = ["alloc"] }
+
+[build-dependencies]
+bindgen    = ">=0.6"
+cc = "1"
+
+[lib]
+name = "liblinky"
+crate-type = ["lib"]
+path = "src/libso.rs"
+
+
