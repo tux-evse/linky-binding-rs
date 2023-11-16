@@ -23,12 +23,12 @@ pub enum LinkyError {
     ParsingError(String),
     InvalidEncoding,
     SerialError(String),
-    ChecksumError,
+    ChecksumError(String),
 }
 
 pub struct LinkyHandle {
-    portname: &'static str,
-    handle: SerialRaw,
+    pub(crate) portname: &'static str,
+    pub(crate) handle: SerialRaw,
 }
 
 impl LinkyHandle {
@@ -60,8 +60,13 @@ impl LinkyHandle {
         };
 
         let pflags = [PortFlag::NOCTTY, PortFlag::RDONLY];
-        let iflags= [SerialIflag::IGNBRK];
-        let cflags = [SerialCflag::CS7, SerialCflag::CLOCAL, SerialCflag::PARENB, parity /*dlt=even*/];
+        let iflags = [SerialIflag::IGNBRK];
+        let cflags = [
+            SerialCflag::CS7,
+            SerialCflag::CLOCAL,
+            SerialCflag::PARENB,
+            parity, /*dlt=even*/
+        ];
         let lflags = [SerialLflag::ICANON];
 
         let handle = SerialRaw::new(portname, speed, &pflags, &iflags, &cflags, &lflags)?;
@@ -82,36 +87,51 @@ impl LinkyHandle {
         self.portname
     }
 
-    fn checksum<'a> (&self, buffer:&'a [u8], count: usize) -> Result<&'a str, LinkyError> {
+    pub(crate) fn checksum<'a>(
+        &self,
+        buffer: &'a [u8],
+        count: usize,
+    ) -> Result<&'a str, LinkyError> {
         // verify checksum take all data from 'etiquette" to last 'delimiteur'
-        let mut sum:u64=0;
-        for idx in 0 .. count -3 {
-            sum= sum + buffer[idx] as u64;
+        let mut sum: u64 = 0;
+        for idx in 0..count - 3 {
+            sum = sum + buffer[idx] as u64;
         }
 
-        let checksum= (sum & 0x3f) as u8 + 0x20;
-        if checksum != buffer [count-3] {
-           return Err(LinkyError::ChecksumError)
-        }
+        // reduce line to effective size
+        let data = match buffer.get(0..count) {
+            Some(value) => value,
+            None => b"invalid-count",
+        };
 
-        match str::from_utf8(buffer) {
-            Err(_) =>  Err(LinkyError::ChecksumError),
-            Ok(data) => Ok(data),
+        // move byte buffer to printable string
+        let line = match str::from_utf8(data) {
+            Err(_) => return Err(LinkyError::ChecksumError("not uft".to_string())),
+            Ok(data) => data,
+        };
+
+        // finally check
+        let checksum = (sum & 0x3f) as u8 + 0x20;
+        if checksum != buffer[count - 3] {
+            Err(LinkyError::ChecksumError(
+                line.to_string(),
+            ))
+        } else {
+           Ok(line)
         }
     }
 
     pub fn decode(&self, buffer: &mut [u8]) -> Result<TicValue, LinkyError> {
-
-        let count= match self.handle.read(buffer) {
-            Err(error) => return Err(LinkyError::SerialError(error.to_string())),
-            Ok(count) => {count}
+        let count = match self.handle.read(buffer) {
+            Err(error) => {
+                afb_log_msg!(Error, None, "Fail to read error={}", (error.to_string()));
+                return Err(LinkyError::SerialError(error.to_string()));
+            }
+            Ok(count) => count,
         };
 
-        let data= self.checksum(buffer, count)?;
-
-        println! ("data={}", data);
-
-        let value= tic_from_str(data)?;
+        let data = self.checksum(buffer, count)?;
+        let value = tic_from_str(data)?;
 
         Ok(value)
     }

@@ -1,5 +1,5 @@
 {
-  "name": "afb-rust",
+  "name": "afb-linky",
   "no-ldpaths": true,
   "port": 1234,
   "alias": ["/devtools:/usr/share/afb-ui-devtools/binder"],
@@ -14,7 +14,8 @@
         "info": "Linky French meeter api",
         "device" : "/dev/ttyUSB0",
         "speed": 9600,
-        "parity": "even"
+        "parity": "even",
+        "cycle": 25
     }
   ]
 }

@@ -1,0 +1,46 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "TtyUSB0",
+            "type": "lldb",
+            "preLaunchTask": "binding-native-build",
+            "request": "launch",
+            "program": "afb-binder",
+            "env": {
+                "LD_LIBRARY_PATH": "/usr/local/lib64"
+            },
+            "args": [
+                "-vvv",
+                "--monitoring",
+                "--trap-faults=0",
+                "--tracereq=all",
+                "--config=afb-binding/etc/binding-linky.json",
+            ],
+            "cwd": "${workspaceFolder}",
+            "initCommands": [
+                "target stop-hook add -n _start -o continue",
+                "settings set target.disable-aslr false",
+            ]
+        },
+                {
+            // reference https://stackoverflow.com/questions/68888706/remote-debug-of-rust-program-in-visual-studio-code
+            "name": "Remote-Upboard",
+            "type": "lldb",
+            "request": "custom",
+            "preLaunchTask": "native-debug-setup",
+            "targetCreateCommands": [
+                "target create /usr/local/bin/afb-binder",
+                "target module add /home/fulup/.cargo/build/debug/libafb_linky.so"
+                ],
+            "processCreateCommands": ["gdb-remote upboard.tuxevse.vpn:9000"],
+            "initCommands": [
+                "target stop-hook add -n _start -o continue",
+                "b afbBindingV4entry"
+                ],
+        },
+    ]
+}

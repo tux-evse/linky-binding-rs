@@ -5,19 +5,22 @@
 // Attention pour simplifier l'écriture des test le séparateur '\i' est remplacé par '|'
 
 use crate::prelude::*;
+use std::cell::Cell;
+use std::ffi::CString;
 
 fn parse_test(data: &str) -> Result<TicValue, LinkyError> {
-    let text:String = data.chars()
-    .map(|x| match x {
-        '|' => 0x09 as char,
-        _ => x
-    }).collect();
+    let text: String = data
+        .chars()
+        .map(|x| match x {
+            '|' => 0x09 as char,
+            _ => x,
+        })
+        .collect();
     tic_from_str(text.as_str())
 }
 
 #[test]
 fn parse_meta() {
-
     parse_test("LTARF|H PLEINE|P\r\n").unwrap();
     parse_test("NGTF|H PLEINE-CREUSE|Z\r\n").unwrap();
     parse_test("VTIC|02|Z\r\n").unwrap();
@@ -32,26 +35,23 @@ fn parse_meta() {
     parse_test("NJOURF|00|Z\r\n").unwrap(); // Numéro du jour en cours calendrier fournisseur
     parse_test("NJOURF+1|00|Z\r\n").unwrap(); // Numéro du jour en cours calendrier fournisseur
     parse_test("PJOURF+1|00000001 16000002 NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE|Z\r\n").unwrap(); // Profil du prochain jour calendrier fournisseur
-    parse_test("PPOINTE|00000001 16000002 NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE|Z\r\n").unwrap(); // Profil du prochain jour calendrier fournisseur
+    parse_test("PPOINTE|00000001 16000002 NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE|Z\r\n").unwrap();
+    // Profil du prochain jour calendrier fournisseur
 }
 
 #[test]
 fn parse_depassement() {
-
-    parse_test("ADPS|23|J\r\n").unwrap();   // puissance dépassée A
+    parse_test("ADPS|23|J\r\n").unwrap(); // puissance dépassée A
 }
-
 
 #[test]
 fn parse_puissance() {
-
-    parse_test("PREF|22|J\r\n").unwrap();   // puissance préférée kVA
-    parse_test("PCOU|22|;\r\n").unwrap();   // puissance de coupure
+    parse_test("PREF|22|J\r\n").unwrap(); // puissance préférée kVA
+    parse_test("PCOUP|22|;\r\n").unwrap(); // puissance de coupure
 }
 
 #[test]
 fn parse_insts() {
-
     parse_test("SINSTS|00022|J\r\n").unwrap();
     parse_test("SINSTS1|00022|;\r\n").unwrap();
     parse_test("SINSTS2|00000|8\r\n").unwrap();
@@ -75,7 +75,6 @@ fn parse_umoy() {
     parse_test("UMOY3|H231109000000|239|P\r\n").unwrap();
 }
 
-
 #[test]
 fn parse_inject() {
     // Energie active injectée
@@ -98,7 +97,6 @@ fn parse_irms() {
     parse_test("IRMS2|000016555|9\r\n").unwrap();
     parse_test("IRMS3|000000000|$\r\n").unwrap();
 }
-
 
 #[test]
 fn parse_urms() {
@@ -142,4 +140,38 @@ fn parse_misc() {
     parse_test("CCAIN-1|H231109111001|00230|5\r\n").unwrap(); // Point n de la courbe de charge active injectée
     parse_test("URMS2|231|9\r\n").unwrap();
     parse_test("URMS3|229|$\r\n").unwrap();
+}
+
+#[test]
+fn checksum() {
+    let serial = SerialRaw {
+        raw_fd: Cell::new(0),
+        devname: CString::new("totot").unwrap(),
+        speed: SerialSpeed::B9600,
+        pflags: 0,
+        iflags: 0 as cglue::tcflag_t,
+        cflags: 0 as cglue::tcflag_t,
+        lflags: 0 as cglue::tcflag_t,
+    };
+    let handle = LinkyHandle {
+        portname: "/dev/dummy",
+        handle: serial,
+    };
+
+    let buffer1 = [
+        83, 84, 71, 69, 9, 48, 48, 50, 65, 48, 48, 49, 49, 9, 58, 13, 10,
+    ];
+    let line = handle.checksum(&buffer1, buffer1.len()).unwrap();
+    println!("buffer1 = {}", line);
+
+    let buffer2 = [
+        85, 77, 79, 89, 50, 9, 72, 50, 51, 49, 49, 49, 54, 49, 52, 48, 48, 48, 48, 9, 48, 48, 48,
+        9, 34, 13, 10
+    ];
+    let line = handle.checksum(&buffer2, buffer2.len()).unwrap();
+    println!("buffer2 = {}", line);
+
+    let buffer3= [83, 77, 65, 88, 83, 78, 49, 45, 49, 9, 72, 50, 51, 49, 49, 49, 53, 49, 55, 48, 56, 52, 50, 9, 48, 48, 48, 50, 50, 9, 67, 13, 10];
+    let line = handle.checksum(&buffer3, buffer3.len()).unwrap();
+    println!("buffer3 = {}", line);
 }

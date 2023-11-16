@@ -96,11 +96,6 @@ pub struct RegisterStatus {
 AfbDataConverter!(tic_value, TicValue);
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub enum TicValue {
-    IMAX(i32),
-    IMAX1(i32),
-    IMAX2(i32),
-    IMAX3(i32),
-
     // instant current
     IINST(i32),
     IINST1(i32),
@@ -113,6 +108,16 @@ pub enum TicValue {
     SINSTS2(i32),
     SINSTS3(i32),
 
+    // courrant efficace
+    IRMS1(i32),
+    IRMS2(i32),
+    IRMS3(i32),
+
+    // tension efficace
+    URMS1(i32),
+    URMS2(i32),
+    URMS3(i32),
+
     // over current
     ADPS(i32),  // over consumption
     ADIR1(i32), // over consumption ph1
@@ -121,7 +126,7 @@ pub enum TicValue {
 
     // allowed power
     PREF(i32), // preference power
-    PCOU(i32), // cutting power
+    PCOUP(i32), // cutting power
 
     //misc
     ADSC(RegisterStatus),
@@ -133,7 +138,8 @@ pub enum TicValue {
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct TicObject {
-    label: &'static str,
+    uid: &'static str,
+    name: &'static str,
     info: &'static str,
     unit: TicUnit,
     count: usize,
@@ -141,77 +147,91 @@ pub struct TicObject {
 
 impl TicObject {
     pub const NTARF: TicObject = TicObject {
-        label: "NTARF",
-        info: "index tarrification",
+        uid: "NTARF",
+        name: "Index-Tarif",
+        info: "index de tarrification",
         unit: TicUnit::None,
         count: 1,
     };
 
     pub const RELAIS: TicObject = TicObject {
-        label: "RELAY",
-        info: "Relay position",
+        uid: "RELAY",
+        name: "Relay-Status",
+        info: "Current relay position",
         unit: TicUnit::None,
         count: 1,
     };
 
-    pub const PCOU: TicObject = TicObject {
-        label: "PCOU",
-        info: "Cutting power",
+    pub const PCOUP: TicObject = TicObject {
+        uid: "PCOUP",
+        name: "Power-Cutting",
+        info: "Max current cutting power",
         unit: TicUnit::VoltAmpere,
-        count: 1,
+        count: 2,
+    };
+
+    pub const IRMS: TicObject = TicObject {
+        uid: "IRMS",
+        name: "effective-current",
+        info: "courrant efficace par phase",
+        unit: TicUnit::Ampere,
+        count: 3,
+    };
+
+    pub const URMS: TicObject = TicObject {
+        uid: "URMS",
+        name: "effective-tension",
+        info: "tension efficace par phase",
+        unit: TicUnit::Volt,
+        count: 3,
     };
 
     pub const ADSC: TicObject = TicObject {
-        label: "ADSC",
+        uid: "ADSC",
+        name: "Status-Register",
         info: "Linky status register",
         unit: TicUnit::None,
         count: 1,
     };
 
     pub const ADPS: TicObject = TicObject {
-        label: "ADPS",
+        uid: "ADPS",
+        name: "Over-Power",
         info: "Over consumption",
         unit: TicUnit::Ampere,
         count: 4,
     };
 
-    pub const IMAX: TicObject = TicObject {
-        label: "IMAX",
-        info: "Max called intensity (A)",
-        unit: TicUnit::Ampere,
-        count: 4,
-    };
-
     pub const IINST: TicObject = TicObject {
-        label: "IINST",
+        uid: "IINST",
+        name: "Instant-Current",
         info: "Current intensity (A)",
         unit: TicUnit::Ampere,
         count: 4,
     };
 
     pub const SINSTS: TicObject = TicObject {
-        label: "SINSTS",
+        uid: "SINSTS",
+        name: "Instant-Power",
         info: "Current Power (VA)",
         unit: TicUnit::VoltAmpere,
         count: 4,
     };
 
-    pub const LTARF: TicObject = TicObject {
-        label: "LTARF",
-        info: "Current Tariff",
-        unit: TicUnit::Ampere,
-        count: 1,
-    };
-
     pub const IGNORED: TicObject = TicObject {
-        label: "IGNORED",
-        info: "Ignored Label",
+        uid: "IGNORED",
+        name: "Ignored",
+        info: "Ignored uid",
         unit: TicUnit::None,
         count: 0,
     };
 
-    pub fn get_label(&self) -> &'static str {
-        self.label
+    pub fn get_uid(&self) -> &'static str {
+        self.uid
+    }
+
+    pub fn get_name(&self) -> &'static str {
+        self.name
     }
 
     pub fn get_unit(&self) -> &TicUnit {
@@ -230,10 +250,6 @@ impl TicObject {
 impl TicValue {
     pub fn metadata(&self) -> &TicObject {
         match self {
-            TicValue::IMAX(_) => &TicObject::IMAX,
-            TicValue::IMAX1(_) => &TicObject::IMAX,
-            TicValue::IMAX2(_) => &TicObject::IMAX,
-            TicValue::IMAX3(_) => &TicObject::IMAX,
 
             TicValue::IINST(_) => &TicObject::IINST,
             TicValue::SINSTS(_) => &TicObject::IINST,
@@ -246,8 +262,10 @@ impl TicValue {
             TicValue::ADIR2(_) => &TicObject::ADPS,
             TicValue::ADIR3(_) => &TicObject::ADPS,
 
-            TicValue::PCOU(_) => &TicObject::PCOU,
-            TicValue::PREF(_) => &TicObject::PCOU,
+            TicValue::PCOUP(_) => &TicObject::PCOUP,
+            TicValue::PREF(_) => &TicObject::PCOUP,
+
+            TicValue::NTARF(_) => &TicObject::NTARF,
 
             _ => &TicObject::IGNORED,
         }
@@ -359,26 +377,28 @@ fn adsc(s: &str) -> IResult<&str, TicValue> {
 }
 
 // i32 message data
+_numeric_data!(ADPS);
 _numeric_data!(ADIR1);
 _numeric_data!(ADIR2);
 _numeric_data!(ADIR3);
-_numeric_data!(ADPS);
 _numeric_data!(IINST);
 _numeric_data!(IINST1);
 _numeric_data!(IINST2);
 _numeric_data!(IINST3);
-_numeric_data!(IMAX);
-_numeric_data!(IMAX1);
-_numeric_data!(IMAX2);
-_numeric_data!(IMAX3);
 _numeric_data!(NTARF);
 _numeric_data!(PREF);
-_numeric_data!(PCOU);
+_numeric_data!(PCOUP);
 _numeric_data!(RELAIS);
 _numeric_data!(SINSTS);
 _numeric_data!(SINSTS1);
 _numeric_data!(SINSTS2);
 _numeric_data!(SINSTS3);
+_numeric_data!(URMS1);
+_numeric_data!(URMS2);
+_numeric_data!(URMS3);
+_numeric_data!(IRMS1);
+_numeric_data!(IRMS2);
+_numeric_data!(IRMS3);
 
 fn numeric_data_a(s: &str) -> IResult<&str, TicValue> {
     let (_, _) = char('A')(s)?;
@@ -389,14 +409,14 @@ fn numeric_data_a(s: &str) -> IResult<&str, TicValue> {
 fn numeric_data_i(s: &str) -> IResult<&str, TicValue> {
     let (_, _) = char('I')(s)?;
     let (s, value) = alt((
-        IMAX, IMAX1, IMAX2, IMAX3, IINST, IINST, IINST1, IINST2, IINST3,
+       IINST, IINST, IINST1, IINST2, IINST3, IRMS1, IRMS2, IRMS3,
     ))(s)?;
     Ok((s, value))
 }
 
 fn numeric_data_p(s: &str) -> IResult<&str, TicValue> {
     let (_, _) = char('P')(s)?;
-    let (s, value) = alt((PCOU, PREF))(s)?;
+    let (s, value) = alt((PCOUP, PREF))(s)?;
     Ok((s, value))
 }
 
@@ -407,7 +427,7 @@ fn numeric_data_s(s: &str) -> IResult<&str, TicValue> {
 }
 
 fn numeric_data_x(s: &str) -> IResult<&str, TicValue> {
-    let (s, value) = alt((RELAIS, NTARF))(s)?;
+    let (s, value) = alt((RELAIS, NTARF, URMS1, URMS2, URMS3))(s)?;
     Ok((s, value))
 }
 
@@ -418,14 +438,14 @@ _ignore_data!(CCAIN);
 _ignore_data!(DATE);
 _ignore_data!(DEMAIN);
 _ignore_data!(DPM);
-_ignore_data!(EASF);
-_ignore_data!(EAST);
+_ignore_data!(EAS);
 _ignore_data!(EAIT);
 _ignore_data!(EJPH);
 _ignore_data!(FPM);
 _ignore_data!(HC);
 _ignore_data!(HHPHC);
 _ignore_data!(IRMS);
+_ignore_data!(IMAX);
 _ignore_data!(ISOUSC);
 _ignore_data!(LTARF);
 _ignore_data!(MOTDETAT);
@@ -443,7 +463,6 @@ _ignore_data!(PRM);
 _ignore_data!(PTEC);
 _ignore_data!(STGE);
 _ignore_data!(SMAX);
-_ignore_data!(URMS);
 _ignore_data!(UMOY);
 _ignore_data!(VTIC);
 
@@ -455,7 +474,7 @@ fn ignore_data_b_c_d(s: &str) -> IResult<&str, TicValue> {
 
 fn ignore_data_e_f_h_i(s: &str) -> IResult<&str, TicValue> {
     let (_, _) = alt((char('E'), char('H'), char('I'), char('F')))(s)?;
-    let (s, _) = alt((EASF, EAST, EAIT, FPM, EJPH, HC, HHPHC, IRMS, ISOUSC))(s)?;
+    let (s, _) = alt((EAS, EAIT, FPM, EJPH, HC, HHPHC, IRMS, IMAX, ISOUSC))(s)?;
     Ok((s, TicValue::UNSET))
 }
 
@@ -472,7 +491,7 @@ fn ignore_data_o_p_s(s: &str) -> IResult<&str, TicValue> {
 }
 
 fn ignore_data_x(s: &str) -> IResult<&str, TicValue> {
-    let (s, _) = alt((URMS, UMOY, VTIC))(s)?;
+    let (s, _) = alt((UMOY, VTIC))(s)?;
     Ok((s, TicValue::UNSET))
 }
 

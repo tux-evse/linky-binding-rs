@@ -20,7 +20,7 @@ pub(crate) fn to_static_str(value: String) -> &'static str {
 AfbDataConverter!(api_actions, ApiAction);
 use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug, Default)]
-#[serde(rename_all = "UPPERCASE", tag = "ACTION")]
+#[serde(rename_all = "lowercase", tag = "action")]
 pub(crate) enum ApiAction {
     #[default]
     READ,
@@ -29,11 +29,11 @@ pub(crate) enum ApiAction {
     UNSUBSCRIBE,
 }
 
-pub struct LinkyConfig {
-    pub uid: &'static str,
+pub(crate) struct LinkyConfig {
     pub device: &'static str,
     pub parity: &'static str,
     pub speed: u32,
+    pub cycle: u32,
 }
 
 impl AfbApiControls for LinkyConfig {
@@ -53,6 +53,9 @@ impl AfbApiControls for LinkyConfig {
 pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi, AfbError> {
     afb_log_msg!(Info, rootv4, "config:{}", jconf);
 
+    // add binding custom converter
+    api_actions::register()?;
+
     let uid = if let Ok(value) = jconf.get::<String>("uid") {
         to_static_str(value)
     } else {
@@ -69,6 +72,12 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
         to_static_str(value)
     } else {
         ""
+    };
+
+    let cycle = if let Ok(value) = jconf.get::<u32>("cycle") {
+        value
+    } else {
+        0
     };
 
     let acls = if let Ok(value) = jconf.get::<String>("acls") {
@@ -102,10 +111,10 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
     // v106::register_datatype() ?;
 
     let config = LinkyConfig {
-        uid,
         device,
         speed,
         parity,
+        cycle,
     };
 
     // create backend API

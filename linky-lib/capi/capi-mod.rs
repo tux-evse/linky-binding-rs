@@ -47,13 +47,13 @@ pub fn get_perror() -> String {
 }
 
 pub struct SerialRaw {
-    raw_fd: Cell<raw::c_int>,
-    devname: CString,
-    speed: SerialSpeed,
-    pflags: raw::c_int,  // device open flags
-    iflags: cglue::tcflag_t, // input stream mask
-    cflags: cglue::tcflag_t, // control stream mask
-    lflags: cglue::tcflag_t, // local control mask
+    pub(crate)raw_fd: Cell<raw::c_int>,
+    pub(crate)devname: CString,
+    pub(crate)speed: SerialSpeed,
+    pub(crate)pflags: raw::c_int,  // device open flags
+    pub(crate)iflags: cglue::tcflag_t, // input stream mask
+    pub(crate)cflags: cglue::tcflag_t, // control stream mask
+    pub(crate)lflags: cglue::tcflag_t, // local control mask
 }
 
 #[repr(u32)]
