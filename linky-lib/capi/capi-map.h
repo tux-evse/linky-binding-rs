@@ -57,7 +57,6 @@ const uint TCF_CSTOPB= CSTOPB;
 const uint TCF_CRTSCTS= CRTSCTS;
 const uint TCF_CLOCAL= CLOCAL;
 
-
 // control bits iflags
 const uint TIF_IGNPAR= IGNPAR;
 const uint TIF_IGNBRK= IGNBRK;

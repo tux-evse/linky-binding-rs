@@ -22,11 +22,11 @@ fn parse_meta() {
     parse_test("NGTF|H PLEINE-CREUSE|Z\r\n").unwrap();
     parse_test("VTIC|02|Z\r\n").unwrap();
     parse_test("DATE|H231110100819|Z\r\n").unwrap();
-    parse_test("STGE|002A0011|Z\r\n").unwrap(); // registre status (doc 6.2.3.14)
+    parse_test("STGE|002A0011|Z\r\n").unwrap(); // register status (doc 6.2.3.14)
     parse_test("ADSC|0123456789012|Z\r\n").unwrap(); // addresse compteur
     parse_test("MSG1|PAS DE MESSAGE|Z\r\n").unwrap();
     parse_test("MSG2|SHORT|Z\r\n").unwrap();
-    parse_test("PRM|00000000000000|Z\r\n").unwrap(); // N° pTS distribution
+    parse_test("PRM|00000000000000|Z\r\n").unwrap(); // N° PTS distribution
     parse_test("RELAIS|00|Z\r\n").unwrap(); // Position du relay on/off
     parse_test("NTARF|01|Z\r\n").unwrap(); // Index tarrifaire actif
     parse_test("NJOURF|00|Z\r\n").unwrap(); // Numéro du jour en cours calendrier fournisseur
@@ -34,6 +34,13 @@ fn parse_meta() {
     parse_test("PJOURF+1|00000001 16000002 NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE|Z\r\n").unwrap(); // Profil du prochain jour calendrier fournisseur
     parse_test("PPOINTE|00000001 16000002 NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE|Z\r\n").unwrap(); // Profil du prochain jour calendrier fournisseur
 }
+
+#[test]
+fn parse_depassement() {
+
+    parse_test("ADPS|23|J\r\n").unwrap();   // puissance dépassée A
+}
+
 
 #[test]
 fn parse_puissance() {
@@ -93,6 +100,7 @@ fn parse_irms() {
 }
 
 
+#[test]
 fn parse_urms() {
     // Tension efficace V
     parse_test("URMS1|230|5\r\n").unwrap();
@@ -100,6 +108,7 @@ fn parse_urms() {
     parse_test("URMS3|229|$\r\n").unwrap();
 }
 
+#[test]
 fn parse_mobile() {
     // Debut/Fin point mobile
     parse_test("DPM1|H231109111001|22|5\r\n").unwrap();
@@ -126,7 +135,8 @@ fn parse_watt() {
     parse_test("EASF10|000000000|\"\r\n").unwrap();
 }
 
-fn parse_pisc() {
+#[test]
+fn parse_misc() {
     // Tension efficace V
     parse_test("CCAIN|H231109111001|00230|5\r\n").unwrap(); // Point n de la courbe de charge active injectée
     parse_test("CCAIN-1|H231109111001|00230|5\r\n").unwrap(); // Point n de la courbe de charge active injectée

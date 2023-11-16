@@ -37,11 +37,11 @@ pub fn get_perror() -> String {
     unsafe {
         cglue::strerror_r(
             *cglue::__errno_location(),
-            &mut buffer as *mut raw::c_char,
+            &mut buffer as *mut i8,
             MAX_ERROR_LEN,
         )
     };
-    let cstring = unsafe { CStr::from_ptr(&mut buffer as *const raw::c_char) };
+    let cstring = unsafe { CStr::from_ptr(&mut buffer as *const i8) };
     let slice: &str = cstring.to_str().unwrap();
     slice.to_owned()
 }

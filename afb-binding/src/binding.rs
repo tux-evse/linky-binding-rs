@@ -10,8 +10,8 @@
  *
  */
 
-use afbv4::prelude::*;
 use crate::prelude::*;
+use afbv4::prelude::*;
 
 pub(crate) fn to_static_str(value: String) -> &'static str {
     Box::leak(value.into_boxed_str())
@@ -20,12 +20,13 @@ pub(crate) fn to_static_str(value: String) -> &'static str {
 AfbDataConverter!(api_actions, ApiAction);
 use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug, Default)]
-#[serde(rename_all = "UPPERCASE")]
-pub(crate)enum ApiAction {
+#[serde(rename_all = "UPPERCASE", tag = "ACTION")]
+pub(crate) enum ApiAction {
     #[default]
     READ,
+    INFO,
     SUBSCRIBE,
-    UNSUBSCRIBE
+    UNSUBSCRIBE,
 }
 
 pub struct LinkyConfig {
@@ -51,7 +52,6 @@ impl AfbApiControls for LinkyConfig {
 // -----------------------------------------
 pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi, AfbError> {
     afb_log_msg!(Info, rootv4, "config:{}", jconf);
-
 
     let uid = if let Ok(value) = jconf.get::<String>("uid") {
         to_static_str(value)
@@ -80,18 +80,20 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
     let device = if let Ok(value) = jconf.get::<String>("device") {
         to_static_str(value)
     } else {
-        return Err(AfbError::new("linky-config-fail", "mandatory label 'device' missing"))
+        return Err(AfbError::new(
+            "linky-config-fail",
+            "mandatory label 'device' missing",
+        ));
     };
 
-
-    let speed= if let Ok(value) = jconf.get::<u32>("speed") {
-       value
+    let speed = if let Ok(value) = jconf.get::<u32>("speed") {
+        value
     } else {
         1200
     };
 
-    let parity= if let Ok(value) = jconf.get::<String>("parity") {
-       to_static_str(value)
+    let parity = if let Ok(value) = jconf.get::<String>("parity") {
+        to_static_str(value)
     } else {
         "even"
     };
@@ -99,7 +101,7 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
     // register data converter
     // v106::register_datatype() ?;
 
-    let config= LinkyConfig {
+    let config = LinkyConfig {
         uid,
         device,
         speed,

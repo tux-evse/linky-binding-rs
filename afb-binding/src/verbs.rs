@@ -11,124 +11,157 @@
  */
 
 use crate::prelude::*;
+use ::core::mem::MaybeUninit;
 use afbv4::prelude::*;
 use liblinky::prelude::*;
-use std::rc::Rc;
 use std::cell::Cell;
-use ::core::mem::MaybeUninit;
+use std::rc::Rc;
 
-struct SensorCtxData {
-    event: &'static AfbEvent,
-    value: Cell<i32>,
-}
-
-impl SensorCtxData {
-    pub fn notify(&self, value: i32) {
-        if value != self.value.get() {
-            self.value.set(value);
-            self.event.push(value);
-        }
-    }
-}
-
-struct SerialCtx {
+struct EventDataCtx {
     pub handle: LinkyHandle,
-    pub error: &'static AfbEvent,
-    pub iinst: Rc<SensorCtxData>,
-    pub imax: Rc<SensorCtxData>,
-}
-
-struct IinstCtxData {
-    sensor: Rc<SensorCtxData>,
-}
-
-AfbVerbRegister!(IinstVerb, iinst_cb, IinstCtxData);
-fn iinst_cb(rqt: &AfbRequest, args: &AfbData, ctx: &mut IinstCtxData) -> Result<(), AfbError> {
-    match args.get::<&ApiAction>(0)? {
-        ApiAction::READ => {}
-        ApiAction::SUBSCRIBE => {ctx.sensor.event.subscribe(rqt)?;},
-        ApiAction::UNSUBSCRIBE => {ctx.sensor.event.unsubscribe(rqt)?;},
-    }
-    rqt.reply(ctx.sensor.value.get(), 0);
-    Ok(())
+    pub event: &'static AfbEvent,
+    pub iinst: Rc<SensorHandleCtx>,
+    pub sinsts: Rc<SensorHandleCtx>,
+    pub adsp: Rc<SensorHandleCtx>,
+    pub adsc: Rc<SensorHandleCtx>,
 }
 
 // this method is call each time a message is waiting on session raw_socket
-AfbEvtFdRegister!(SerialAsyncCtrl, async_serial_cb, SerialCtx);
-fn async_serial_cb(_fd: &AfbEvtFd, revent: u32, ctx: &mut SerialCtx) {
-
+AfbEvtFdRegister!(SerialAsyncCtrl, async_serial_cb, EventDataCtx);
+fn async_serial_cb(_fd: &AfbEvtFd, revent: u32, ctx: &mut EventDataCtx) {
     // There is no value initializing a buffer before reading operation
     #[allow(invalid_value)]
-    let mut buffer= unsafe{MaybeUninit::<[u8;256]>::uninit().assume_init()};
+    let mut buffer = unsafe { MaybeUninit::<[u8; 256]>::uninit().assume_init() };
 
     if revent == AfbEvtFdPoll::IN.bits() {
         match ctx.handle.decode(&mut buffer) {
             Err(error) => {
                 afb_log_msg!(
                     Error,
-                    ctx.error,
+                    ctx.event,
                     "device:{} invalid data {:?}",
                     ctx.handle.get_name(),
                     error
                 );
-                ctx.error.push(format!("{:?}", error));
+                ctx.event.broadcast(format!("{:?}", error));
             }
-            Ok(data) => match data {
-                TicValue::IMAX(value) => ctx.iinst.notify(value),
-                TicValue::IINST(value) => ctx.imax.notify(value),
-                TicValue::LTARF(value) => {} // Fulup TBD
+            Ok(data) => {
+                match data {
+                    // register status
+                    TicValue::ADSC(value) => ctx.adsc.updated(data, 0, value.raw as i32),
+                    TicValue::ADPS(value) => ctx.adsp.updated(data, 0, value),
+                    // instant current
+                    TicValue::IINST(value) => ctx.iinst.updated(data, 0, value),
+                    TicValue::IINST1(value) => ctx.iinst.updated(data, 1, value),
+                    TicValue::IINST2(value) => ctx.iinst.updated(data, 1, value),
+                    TicValue::IINST3(value) => ctx.iinst.updated(data, 2, value),
+                    // instant active current
+                    TicValue::SINSTS(value) => ctx.sinsts.updated(data, 0, value),
+                    TicValue::SINSTS1(value) => ctx.sinsts.updated(data, 1, value),
+                    TicValue::SINSTS2(value) => ctx.sinsts.updated(data, 2, value),
+                    TicValue::SINSTS3(value) => ctx.sinsts.updated(data, 3, value),
+                    _ => {} // ignore any other data
+                };
+            }
+        }
+    } else {
+        ctx.event.broadcast("tty-error");
+    }
+}
 
-                _ => {},
-            },
+struct SensorHandleCtx {
+    tic: &'static TicObject,
+    event: &'static AfbEvent,
+    values: Cell<[i32; 4]>,
+}
+
+// if new/old value diverge send event and update value cache
+impl SensorHandleCtx {
+    pub fn updated(&self, data: TicValue, idx: usize, value: i32) {
+        let mut values = self.values.get();
+        if value != values[idx] {
+            values[idx] = value;
+            self.values.set(values);
+            self.event.push(data);
         }
     }
 }
 
+struct SensorDataCtx {
+    handle: Rc<SensorHandleCtx>,
+}
+AfbVerbRegister!(SensorVerb, sensorcb, SensorDataCtx);
+fn sensorcb(rqt: &AfbRequest, args: &AfbData, ctx: &mut SensorDataCtx) -> Result<(), AfbError> {
+    let mut response = AfbParams::new();
+    match args.get::<&ApiAction>(0)? {
+        ApiAction::READ => {
+            let values = ctx.handle.values.get();
+            for idx in 0.. ctx.handle.tic.get_count() {
+                response.push(values[idx])?;
+            }
+        }
+        ApiAction::INFO => {
+            let info = match serde_json::to_string(ctx.handle.tic) {
+                Ok(value) => value,
+                Err(_) => "no-sensor-info".to_string(),
+            };
+            response.push(info)?;
+        }
+        ApiAction::SUBSCRIBE => {
+            ctx.handle.event.subscribe(rqt)?;
+            response.push(AFB_NO_DATA)?;
+        }
+        ApiAction::UNSUBSCRIBE => {
+            ctx.handle.event.unsubscribe(rqt)?;
+            response.push(AFB_NO_DATA)?;
+        }
+    }
+
+    rqt.reply(response, 0);
+    Ok(())
+}
+
 // register a new linky sensor
-fn mk_sensor(api: &mut AfbApi, verb: &mut AfbVerb, tic: &'static TicObject) -> Result<Rc<SensorCtxData>, AfbError> {
+fn mk_sensor(api: &mut AfbApi, tic: &'static TicObject) -> Result<Rc<SensorHandleCtx>, AfbError> {
     let label = tic.get_label();
-    let sensor = Rc::new(SensorCtxData {
-        value: Cell::new(0),
-        event: AfbEvent::new(label),
+    let event = AfbEvent::new(label);
+    let verb = AfbVerb::new(label);
+
+    let ctx = Rc::new(SensorHandleCtx {
+        tic,
+        event,
+        values: Cell::new([0; 4]),
     });
 
-    api.add_event(sensor.event);
-
     verb.set_info(tic.get_info());
-    verb.set_action("['reset', 'subscribe', 'unsubscribe']")?;
-    Ok(sensor)
+    verb.set_action("['read', 'info', 'subscribe', 'unsubscribe']")?;
+    verb.set_callback(Box::new(SensorDataCtx {
+        handle: ctx.clone(),
+    }));
+    verb.finalize()?;
+
+    api.add_verb(verb);
+    api.add_event(event);
+    Ok(ctx)
 }
 
 pub(crate) fn register_verbs(api: &mut AfbApi, config: LinkyConfig) -> Result<(), AfbError> {
+    // register custom parser afb-v4 type within binder
+    liblinky::prelude::tic_register_type()?;
 
-    let verb = AfbVerb::new("IINST");
-    let iinst = mk_sensor(api, verb,&TicObject::IINST)?;
-    verb.set_callback(Box::new(IinstCtxData {
-        sensor: iinst.clone(),
-    }));
-    verb.finalize()?;
-    api.add_verb(verb);
-
-    let verb = AfbVerb::new("IMAX");
-    let imax = mk_sensor(api, verb,&TicObject::IMAX)?;
-    verb.set_callback(Box::new(IinstCtxData {
-        sensor: iinst.clone(),
-    }));
-    verb.finalize()?;
-    api.add_verb(verb);
-
-
-    let serial_ctx= SerialCtx {
-            handle: LinkyHandle::new(config.device, config.speed, config.parity)?,
-            error: AfbEvent::new("Linky/Error"),
-            iinst,
-            imax,
-        };
+    let event_ctx = EventDataCtx {
+        handle: LinkyHandle::new(config.device, config.speed, config.parity)?,
+        event: AfbEvent::new("Linky"),
+        iinst: mk_sensor(api, &TicObject::IINST)?,
+        sinsts: mk_sensor(api, &TicObject::SINSTS)?,
+        adsp: mk_sensor(api, &TicObject::ADPS)?,
+        adsc: mk_sensor(api, &TicObject::ADSC)?,
+    };
 
     AfbEvtFd::new(config.device)
-        .set_fd(serial_ctx.handle.get_fd())
+        .set_fd(event_ctx.handle.get_fd())
         .set_events(AfbEvtFdPoll::IN)
-        .set_callback(Box::new(serial_ctx))
+        .set_callback(Box::new(event_ctx))
         .start()?;
 
     Ok(())
