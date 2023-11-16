@@ -118,7 +118,6 @@ impl SensorHandleCtx {
         let forced = if cycle > 0 {
             let count = self.count.get();
             if count == cycle {
-                self.count.set(0);
                 true
             } else {
                 self.count.set(count+1);
@@ -130,6 +129,7 @@ impl SensorHandleCtx {
 
         if value != values[idx] || forced {
             values[idx] = value;
+            self.count.set(0);
             self.values.set(values);
             self.event.push(data);
         }
