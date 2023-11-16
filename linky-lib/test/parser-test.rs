@@ -28,7 +28,7 @@ fn parse_meta() {
     parse_test("MSG2|SHORT|Z\r\n").unwrap();
     parse_test("PRM|00000000000000|Z\r\n").unwrap(); // N° PTS distribution
     parse_test("RELAIS|00|Z\r\n").unwrap(); // Position du relay on/off
-    parse_test("NTARF|01|Z\r\n").unwrap(); // Index tarrifaire actif
+    parse_test("NTARF|01|Z\r\n").unwrap(); // Index tarifaire actif
     parse_test("NJOURF|00|Z\r\n").unwrap(); // Numéro du jour en cours calendrier fournisseur
     parse_test("NJOURF+1|00|Z\r\n").unwrap(); // Numéro du jour en cours calendrier fournisseur
     parse_test("PJOURF+1|00000001 16000002 NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE NONUTILE|Z\r\n").unwrap(); // Profil du prochain jour calendrier fournisseur

@@ -113,12 +113,21 @@ pub enum TicValue {
     SINSTS2(i32),
     SINSTS3(i32),
 
-    //misc
-    ADSC(RegisterStatus),
+    // over current
     ADPS(i32),  // over consumption
     ADIR1(i32), // over consumption ph1
     ADIR2(i32), // over consumption ph2
     ADIR3(i32), // over consumption ph3
+
+    // allowed power
+    PREF(i32), // preference power
+    PCOU(i32), // cutting power
+
+    //misc
+    ADSC(RegisterStatus),
+    RELAIS(i32),
+    NTARF(i32), // index tarrification
+
     UNSET,
 }
 
@@ -131,6 +140,27 @@ pub struct TicObject {
 }
 
 impl TicObject {
+    pub const NTARF: TicObject = TicObject {
+        label: "NTARF",
+        info: "index tarrification",
+        unit: TicUnit::None,
+        count: 1,
+    };
+
+    pub const RELAIS: TicObject = TicObject {
+        label: "RELAY",
+        info: "Relay position",
+        unit: TicUnit::None,
+        count: 1,
+    };
+
+    pub const PCOU: TicObject = TicObject {
+        label: "PCOU",
+        info: "Cutting power",
+        unit: TicUnit::VoltAmpere,
+        count: 1,
+    };
+
     pub const ADSC: TicObject = TicObject {
         label: "ADSC",
         info: "Linky status register",
@@ -215,6 +245,9 @@ impl TicValue {
             TicValue::ADIR1(_) => &TicObject::ADPS,
             TicValue::ADIR2(_) => &TicObject::ADPS,
             TicValue::ADIR3(_) => &TicObject::ADPS,
+
+            TicValue::PCOU(_) => &TicObject::PCOU,
+            TicValue::PREF(_) => &TicObject::PCOU,
 
             _ => &TicObject::IGNORED,
         }
@@ -319,94 +352,145 @@ fn label_to_ignore<'a>(s: &'a str, label: &str) -> IResult<&'a str, ()> {
     Ok((s, ()))
 }
 
-// joour+1 is not a valid name
-fn njour1_msg<'a>(s: &'a str) -> IResult<&'a str, ()> {
-    let (s, _) = tag("PJOURF+1")(s)?;
-    let (s, _) = not_line_ending(s)?;
-    let (s, _) = line_ending(s)?;
-    Ok((s, ()))
-}
-
 // register status
 fn adsc(s: &str) -> IResult<&str, TicValue> {
     let (s, value) = label_to_register(s, "ADSC")?;
     Ok((s, TicValue::ADSC(value)))
 }
 
-// numeric message data
+// i32 message data
+_numeric_data!(ADIR1);
+_numeric_data!(ADIR2);
+_numeric_data!(ADIR3);
 _numeric_data!(ADPS);
-_numeric_data!(IMAX);
-_numeric_data!(IMAX1);
-_numeric_data!(IMAX2);
-_numeric_data!(IMAX3);
 _numeric_data!(IINST);
 _numeric_data!(IINST1);
 _numeric_data!(IINST2);
 _numeric_data!(IINST3);
+_numeric_data!(IMAX);
+_numeric_data!(IMAX1);
+_numeric_data!(IMAX2);
+_numeric_data!(IMAX3);
+_numeric_data!(NTARF);
+_numeric_data!(PREF);
+_numeric_data!(PCOU);
+_numeric_data!(RELAIS);
 _numeric_data!(SINSTS);
 _numeric_data!(SINSTS1);
 _numeric_data!(SINSTS2);
-_numeric_data!(ADIR1);
-_numeric_data!(ADIR2);
-_numeric_data!(ADIR3);
 _numeric_data!(SINSTS3);
-fn numeric_data(s: &str) -> IResult<&str, TicValue> {
+
+fn numeric_data_a(s: &str) -> IResult<&str, TicValue> {
+    let (_, _) = char('A')(s)?;
+    let (s, value) = alt((adsc, ADPS, ADIR1, ADIR2, ADIR3))(s)?;
+    Ok((s, value))
+}
+
+fn numeric_data_i(s: &str) -> IResult<&str, TicValue> {
+    let (_, _) = char('I')(s)?;
     let (s, value) = alt((
-        adsc, IMAX, IMAX1, IMAX2, IMAX3, IINST, IINST, IINST1, IINST2, IINST3, SINSTS, SINSTS1,
-        SINSTS2, SINSTS3, ADPS, ADIR1, ADIR2, ADIR3,
+        IMAX, IMAX1, IMAX2, IMAX3, IINST, IINST, IINST1, IINST2, IINST3,
     ))(s)?;
     Ok((s, value))
 }
 
+fn numeric_data_p(s: &str) -> IResult<&str, TicValue> {
+    let (_, _) = char('P')(s)?;
+    let (s, value) = alt((PCOU, PREF))(s)?;
+    Ok((s, value))
+}
+
+fn numeric_data_s(s: &str) -> IResult<&str, TicValue> {
+    let (_, _) = char('S')(s)?;
+    let (s, value) = alt((SINSTS, SINSTS1, SINSTS2, SINSTS3))(s)?;
+    Ok((s, value))
+}
+
+fn numeric_data_x(s: &str) -> IResult<&str, TicValue> {
+    let (s, value) = alt((RELAIS, NTARF))(s)?;
+    Ok((s, value))
+}
+
 // --- ignored messages ---
-_ignore_data!(LTARF);
-_ignore_data!(NGTF);
-_ignore_data!(VTIC);
-_ignore_data!(DATE);
-_ignore_data!(STGE);
-_ignore_data!(MSG);
-_ignore_data!(PRM);
-_ignore_data!(NTARF);
-_ignore_data!(NJOURF);
-_ignore_data!(PPOINTE);
-_ignore_data!(OPTARIF);
-_ignore_data!(ISOUSC);
 _ignore_data!(BASE);
-_ignore_data!(HCHC);
-_ignore_data!(HCHP);
-_ignore_data!(EJPH);
 _ignore_data!(BBRH);
-_ignore_data!(PEJP);
-_ignore_data!(PTEC);
+_ignore_data!(CCAIN);
+_ignore_data!(DATE);
 _ignore_data!(DEMAIN);
-_ignore_data!(HHPHC);
-_ignore_data!(MOTDETAT);
-_ignore_data!(PMAX);
-_ignore_data!(PAPP);
-_ignore_data!(PPOT);
+_ignore_data!(DPM);
 _ignore_data!(EASF);
 _ignore_data!(EAST);
-_ignore_data!(CCAIN);
+_ignore_data!(EAIT);
+_ignore_data!(EJPH);
+_ignore_data!(FPM);
+_ignore_data!(HC);
+_ignore_data!(HHPHC);
+_ignore_data!(IRMS);
+_ignore_data!(ISOUSC);
+_ignore_data!(LTARF);
+_ignore_data!(MOTDETAT);
+_ignore_data!(MSG);
+_ignore_data!(NGTF);
+_ignore_data!(NJOURF);
+_ignore_data!(OPTARIF);
+_ignore_data!(PAPP);
+_ignore_data!(PEJP);
+_ignore_data!(PMAX);
+_ignore_data!(PJOURF);
+_ignore_data!(PPOINTE);
+_ignore_data!(PPOT);
+_ignore_data!(PRM);
+_ignore_data!(PTEC);
+_ignore_data!(STGE);
+_ignore_data!(SMAX);
 _ignore_data!(URMS);
+_ignore_data!(UMOY);
+_ignore_data!(VTIC);
 
-fn ignore_data(s: &str) -> IResult<&str, TicValue> {
-    let (s, _) = alt((
-        LTARF, NGTF, VTIC, DATE, STGE, STGE, MSG, PRM, NTARF, NJOURF, njour1_msg, PPOINTE, OPTARIF,
-        ISOUSC, BASE, HCHC, HCHP, EAST,URMS,CCAIN,
-    ))(s)?;
+fn ignore_data_b_c_d(s: &str) -> IResult<&str, TicValue> {
+    let (_, _) = alt((char('B'), char('C'), char('D')))(s)?;
+    let (s, _) = alt((BASE, BBRH, CCAIN, DATE, DEMAIN, DPM))(s)?;
     Ok((s, TicValue::UNSET))
 }
 
-fn ignore_data2(s: &str) -> IResult<&str, TicValue> {
-    let (s, _) = alt((
-        EJPH, BBRH, PEJP, PTEC, DEMAIN, HHPHC, MOTDETAT, PMAX, PAPP, PPOT, EASF,
-    ))(s)?;
+fn ignore_data_e_f_h_i(s: &str) -> IResult<&str, TicValue> {
+    let (_, _) = alt((char('E'), char('H'), char('I'), char('F')))(s)?;
+    let (s, _) = alt((EASF, EAST, EAIT, FPM, EJPH, HC, HHPHC, IRMS, ISOUSC))(s)?;
     Ok((s, TicValue::UNSET))
 }
+
+fn ignore_data_l_m_n(s: &str) -> IResult<&str, TicValue> {
+    let (_, _) = alt((char('L'), char('M'), char('N')))(s)?;
+    let (s, _) = alt((LTARF, MOTDETAT, MSG, NGTF, NJOURF))(s)?;
+    Ok((s, TicValue::UNSET))
+}
+
+fn ignore_data_o_p_s(s: &str) -> IResult<&str, TicValue> {
+    let (_, _) = alt((char('O'), char('P'), char('S')))(s)?;
+    let (s, _) = alt((OPTARIF, PAPP, PEJP, PMAX, PPOINTE, PJOURF, PPOT, PRM, PTEC, STGE, SMAX))(s)?;
+    Ok((s, TicValue::UNSET))
+}
+
+fn ignore_data_x(s: &str) -> IResult<&str, TicValue> {
+    let (s, _) = alt((URMS, UMOY, VTIC))(s)?;
+    Ok((s, TicValue::UNSET))
+}
+
 
 // Fulup note: size of nom 'alt' is limited which impose to split labels grammar
 fn tic_data(s: &str) -> IResult<&str, TicValue> {
-    let (s, data) = alt((ignore_data, ignore_data2, numeric_data))(s)?;
+    let (s, data) = alt((
+        numeric_data_a,
+        numeric_data_i,
+        numeric_data_p,
+        numeric_data_s,
+        numeric_data_x,
+        ignore_data_b_c_d,
+        ignore_data_e_f_h_i,
+        ignore_data_l_m_n,
+        ignore_data_o_p_s,
+        ignore_data_x,
+    ))(s)?;
     Ok((s, data))
 }
 
