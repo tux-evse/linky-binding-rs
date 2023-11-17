@@ -26,7 +26,7 @@ fn main() {
      = bindgen::Builder::default()
         .header("capi/capi-map.h") // Pionix C++ prototype wrapper input
         .raw_line(header)
-        .parse_callbacks(Box::new(bindgen::CargoCallbacks))
+        .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
         .derive_debug(false)
         .layout_tests(false)
         .allowlist_function("open")
