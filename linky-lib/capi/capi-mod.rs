@@ -37,7 +37,7 @@ pub fn get_perror() -> String {
     unsafe {
         cglue::strerror_r(
             *cglue::__errno_location(),
-            &mut buffer as *mut i8,
+            &mut buffer as *mut raw::c_char,
             MAX_ERROR_LEN,
         )
     };
