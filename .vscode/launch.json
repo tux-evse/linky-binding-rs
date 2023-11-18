@@ -34,7 +34,8 @@
             "preLaunchTask": "native-debug-setup",
             "targetCreateCommands": [
                 "target create /usr/local/bin/afb-binder",
-                "target module add /home/fulup/.cargo/build/debug/libafb_linky.so"
+                "settings append target.exec-search-paths /home/fulup/.cargo/build/debug/",
+                //"target module add /home/fulup/.cargo/build/debug/libafb_linky.so"
                 ],
             "processCreateCommands": ["gdb-remote upboard.tuxevse.vpn:9000"],
             "initCommands": [
