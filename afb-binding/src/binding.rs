@@ -80,7 +80,7 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
         0
     };
 
-    let acls = if let Ok(value) = jconf.get::<String>("acls") {
+    let permision = if let Ok(value) = jconf.get::<String>("permision") {
         AfbPermission::new(to_static_str(value))
     } else {
         AfbPermission::new("acl:linky:client")
@@ -118,7 +118,7 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
     };
 
     // create backend API
-    let api = AfbApi::new(api).set_info(info).set_permission(acls);
+    let api = AfbApi::new(api).set_info(info).set_permission(permision);
     register_verbs(api, config)?;
 
     Ok(api.finalize()?)

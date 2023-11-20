@@ -10,6 +10,7 @@
     {
         "uid": "linky-meeter",
         "api": "linky",
+        "permission": "acl:linky",
         "path": "${CARGO_TARGET_DIR}debug/libafb_linky.so",
         "info": "Linky French meeter api",
         "device" : "/dev/ttyUSB0",
