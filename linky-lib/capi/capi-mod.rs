@@ -124,7 +124,7 @@ impl SerialRaw {
     ) -> Result<SerialRaw, AfbError> {
         let devname = match CString::new(device) {
             Err(_) => {
-                return Err(AfbError::new("serial-invalid-devname", "fail to convert name to UTF8"))
+                return afb_error!("serial-invalid-devname", "fail to convert name to UTF8")
             }
             Ok(value) => value,
         };
@@ -168,7 +168,7 @@ impl SerialRaw {
         // open tty device
         let raw_fd = unsafe { cglue::open(self.devname.as_ptr(), self.pflags, 0) };
         if raw_fd < 0 {
-            return Err(AfbError::new("serial-open-fail", get_perror()));
+            return afb_error!("serial-open-fail", get_perror())
         }
 
         // set attributes useless but ttyios.c_cc[6]= 1 require
@@ -177,10 +177,10 @@ impl SerialRaw {
 
         // Fulup warning cfsetspeed does not seems working as expected with ICANON
         if unsafe { cglue::cfsetispeed(&mut termios, self.speed as u32) } < 0 {
-            return Err(AfbError::new("serial-speed-setting", get_perror()));
+            return afb_error!("serial-speed-setting", get_perror())
         }
         if unsafe { cglue::cfsetospeed(&mut termios, self.speed as u32) } < 0 {
-            return Err(AfbError::new("serial-speed-setting", get_perror()));
+            return afb_error!("serial-speed-setting", get_perror())
         }
 
         termios.c_cflag= termios.c_cflag| self.cflags;
@@ -188,7 +188,7 @@ impl SerialRaw {
         termios.c_iflag= termios.c_iflag| self.iflags;
 
         if unsafe { cglue::tcsetattr(raw_fd, cglue::TIO_TCSANOW as i32, &mut termios) } < 0 {
-            return Err(AfbError::new("serial-flags-setting", get_perror()));
+            return afb_error!("serial-flags-setting", get_perror())
         }
 
         // update fd cell within immutable handle
@@ -213,7 +213,7 @@ impl SerialRaw {
         };
 
         if count <= 0 {
-            Err(AfbError::new("SerialRaw-read-fail", get_perror()))
+            afb_error!("SerialRaw-read-fail", get_perror())
         } else {
             Ok(count as usize)
         }

@@ -41,10 +41,10 @@ impl LinkyHandle {
             "even" => SerialCflag::PAREVN,
             "odd" => SerialCflag::PARODD,
             _ => {
-                return Err(AfbError::new(
+                return afb_error!(
                     "tty-parity-invalid",
                     "Linky only support even|odd",
-                ))
+                )
             }
         };
 
@@ -52,10 +52,10 @@ impl LinkyHandle {
             1200 => SerialSpeed::B1200,
             9600 => SerialSpeed::B9600,
             _ => {
-                return Err(AfbError::new(
+                return afb_error!(
                     "tty-speed-invalid",
                     "Linky only support 1200|9600",
-                ))
+                )
             }
         };
 
