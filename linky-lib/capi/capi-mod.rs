@@ -114,6 +114,7 @@ pub enum PortFlag {
 impl SerialRaw {
 
     // prepare handle for open operaTIFn
+    #[track_caller]
     pub fn new(
         device: &'static str,
         speed: SerialSpeed,
@@ -164,6 +165,7 @@ impl SerialRaw {
         Ok(handle)
     }
 
+    #[track_caller]
     pub fn open(&self) -> Result<(), AfbError> {
         // open tty device
         let raw_fd = unsafe { cglue::open(self.devname.as_ptr(), self.pflags, 0) };
@@ -203,6 +205,7 @@ impl SerialRaw {
         self.raw_fd.get()
     }
 
+    #[track_caller]
     pub fn read(&self, buffer: &mut [u8]) -> Result<usize, AfbError> {
         let count = unsafe {
             cglue::read(
