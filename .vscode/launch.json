@@ -34,13 +34,15 @@
             "preLaunchTask": "native-debug-setup",
             "targetCreateCommands": [
                 "target create /usr/local/bin/afb-binder",
-                "settings append target.exec-search-paths /home/fulup/.cargo/build/debug/",
-                //"target module add /home/fulup/.cargo/build/debug/libafb_linky.so"
+                "target module add /home/fulup/.cargo/build/debug/libafb_linky.so",
                 ],
             "processCreateCommands": ["gdb-remote upboard.tuxevse.vpn:9000"],
             "initCommands": [
                 "target stop-hook add -n _start -o continue",
-                "b afbBindingV4entry"
+                "settings set target.disable-aslr false",
+                "settings set target.exec-search-paths /home/fulup/.cargo/build/debug",
+                "breakpoint set --name binding_init",
+                "breakpoint set --file binding.rs --line 54"
                 ],
         },
     ]

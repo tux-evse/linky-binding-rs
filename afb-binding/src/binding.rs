@@ -89,10 +89,10 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
     let device = if let Ok(value) = jconf.get::<String>("device") {
         to_static_str(value)
     } else {
-        return Err(AfbError::new(
+        return afb_error!(
             "linky-config-fail",
             "mandatory label 'device' missing",
-        ));
+        )
     };
 
     let speed = if let Ok(value) = jconf.get::<u32>("speed") {

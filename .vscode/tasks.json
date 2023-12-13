@@ -10,13 +10,21 @@
             ],
             "group": "build"
         },
-                {
+        {
             "label": "native-debug-setup",
             "type": "shell",
             "command": "${workspaceFolder}/afb-binding/etc/remote-debug-native.sh",
-            "args": [ "upboard.tuxevse.vpn", "${env:HOME}/.cargo/build/debug/libafb_linky.so", "linky/binding-linky.json", "9000", "${env:USER}"],
+            "args": [
+                "upboard.tuxevse.vpn",
+                "${env:HOME}/.cargo/build/debug/libafb_linky.so",
+                "linky/binding-linky.json",
+                "9000",
+                "${env:USER}"
+            ],
             "group": "none",
-            "dependsOn": ["binding-native-build"],
+            "dependsOn": [
+                "binding-native-build"
+            ]
         },
         {
             "type": "cargo",
@@ -25,6 +33,15 @@
                 "$rustc"
             ],
             "label": "rust: cargo run"
+        },
+        {
+            "type": "cargo",
+            "command": "build",
+            "problemMatcher": [
+                "$rustc"
+            ],
+            "group": "build",
+            "label": "rust: cargo build"
         }
     ]
 }
