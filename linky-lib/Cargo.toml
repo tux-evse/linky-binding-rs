@@ -14,7 +14,7 @@ serde_json={ version= "1.0"}
 
 [build-dependencies]
 bindgen    = ">=0.69"
-cc = "1"
+cc = ">=1.0"
 
 [lib]
 name = "liblinky"
