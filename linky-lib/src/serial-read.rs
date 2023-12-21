@@ -40,23 +40,13 @@ impl LinkyHandle {
         let parity = match parity {
             "even" => SerialCflag::PAREVN,
             "odd" => SerialCflag::PARODD,
-            _ => {
-                return afb_error!(
-                    "tty-parity-invalid",
-                    "Linky only support even|odd",
-                )
-            }
+            _ => return afb_error!("tty-parity-invalid", "Linky only support even|odd",),
         };
 
         let speed = match speed {
             1200 => SerialSpeed::B1200,
             9600 => SerialSpeed::B9600,
-            _ => {
-                return afb_error!(
-                    "tty-speed-invalid",
-                    "Linky only support 1200|9600",
-                )
-            }
+            _ => return afb_error!("tty-speed-invalid", "Linky only support 1200|9600",),
         };
 
         let pflags = [PortFlag::NOCTTY, PortFlag::RDONLY];
@@ -114,11 +104,9 @@ impl LinkyHandle {
         // finally check
         let checksum = (sum & 0x3f) as u8 + 0x20;
         if checksum != buffer[count - 3] {
-            Err(LinkyError::ChecksumError(
-                line.to_string(),
-            ))
+            Err(LinkyError::ChecksumError(line.to_string()))
         } else {
-           Ok(line)
+            Ok(line)
         }
     }
 
@@ -128,10 +116,17 @@ impl LinkyHandle {
                 afb_log_msg!(Error, None, "Fail to read error={}", (error.to_string()));
                 return Err(LinkyError::SerialError(error.to_string()));
             }
-            Ok(count) => count,
+            Ok(count) => {
+                if count <= 3 {
+                    afb_log_msg!(Error, None, "Fail to read buffer={:?}", buffer);
+                    return Err(LinkyError::RetryLater);
+                } else {
+                    count
+                }
+            }
         };
 
-        println! ("read count={}", count);
+        println!("read count={}", count);
 
         let data = self.checksum(buffer, count)?;
         let value = tic_from_str(data)?;
