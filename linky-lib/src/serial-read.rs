@@ -94,7 +94,8 @@ impl LinkyHandle {
     ) -> Result<&'a str, LinkyError> {
         // verify checksum take all data from 'etiquette" to last 'delimiteur'
         let mut sum: u64 = 0;
-        for idx in 0..count - 3 {
+        println!("checksum count={}", count);
+        for idx in 0..(count - 3) {
             sum = sum + buffer[idx] as u64;
         }
 
@@ -129,6 +130,8 @@ impl LinkyHandle {
             }
             Ok(count) => count,
         };
+
+        println! ("read count={}", count);
 
         let data = self.checksum(buffer, count)?;
         let value = tic_from_str(data)?;
