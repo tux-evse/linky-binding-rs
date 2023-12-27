@@ -167,7 +167,7 @@ impl TicObject {
         name: "Power-Cutting",
         info: "Max current cutting power",
         unit: TicUnit::VoltAmpere,
-        count: 2,
+        count: 1,
     };
 
     pub const IRMS: TicObject = TicObject {
