@@ -13,7 +13,7 @@
 use crate::prelude::*;
 use ::core::mem::MaybeUninit;
 use afbv4::prelude::*;
-use liblinky::prelude::*;
+use linky::prelude::*;
 use std::cell::Cell;
 use std::rc::Rc;
 
@@ -145,9 +145,11 @@ fn sensorcb(rqt: &AfbRequest, args: &AfbData, ctx: &mut SensorDataCtx) -> Result
     match args.get::<&ApiAction>(0)? {
         ApiAction::READ => {
             let values = ctx.handle.values.get();
+            let jsonc= JsoncObj::array();
             for idx in 0..ctx.handle.tic.get_count() {
-                response.push(values[idx])?;
+                jsonc.insert(values[idx])?;
             }
+            response.push(jsonc)?;
         }
         ApiAction::INFO => {
             let info = match serde_json::to_string(ctx.handle.tic) {
@@ -197,7 +199,7 @@ fn mk_sensor(api: &mut AfbApi, tic: &'static TicObject) -> Result<Rc<SensorHandl
 
 pub(crate) fn register_verbs(api: &mut AfbApi, config: LinkyConfig) -> Result<(), AfbError> {
     // register custom parser afb-v4 type within binder
-    liblinky::prelude::tic_register_type()?;
+    linky::prelude::tic_register_type()?;
     let event = AfbEvent::new("Serial");
 
     let event_ctx = EventDataCtx {

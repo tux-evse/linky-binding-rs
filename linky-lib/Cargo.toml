@@ -17,7 +17,7 @@ bindgen    = ">=0.69"
 cc = ">=1.0"
 
 [lib]
-name = "liblinky"
+name = "linky"
 crate-type = ["lib"]
 path = "src/libso.rs"
 
