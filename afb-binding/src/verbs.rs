@@ -40,7 +40,7 @@ struct EventDataCtx {
 
 // this method is call each time a message is waiting on session raw_socket
 AfbEvtFdRegister!(SerialAsyncCtrl, async_serial_cb, EventDataCtx);
-fn async_serial_cb(_fd: &AfbEvtFd, revent: u32, ctx: &mut EventDataCtx) {
+fn async_serial_cb(_fd: &AfbEvtFd, revent: u32, ctx: &mut EventDataCtx) -> Result<(), AfbError>{
     // There is no value initializing a buffer before reading operation
     #[allow(invalid_value)]
     let mut buffer = unsafe { MaybeUninit::<[u8; 256]>::uninit().assume_init() };
@@ -107,6 +107,7 @@ fn async_serial_cb(_fd: &AfbEvtFd, revent: u32, ctx: &mut EventDataCtx) {
     } else {
         ctx.event.broadcast("tty-error");
     }
+    Ok(())
 }
 
 // if new/old value diverge send event and update value cache
