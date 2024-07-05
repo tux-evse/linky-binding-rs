@@ -39,8 +39,15 @@ struct EventDataCtx {
 }
 
 // this method is call each time a message is waiting on session raw_socket
-AfbEvtFdRegister!(SerialAsyncCtrl, async_serial_cb, EventDataCtx);
-fn async_serial_cb(_fd: &AfbEvtFd, revent: u32, ctx: &mut EventDataCtx) -> Result<(), AfbError>{
+//AfbEvtFdRegister!(SerialAsyncCtrl, async_serial_cb, EventDataCtx);
+fn async_serial_cb(
+    _fd: &AfbEvtFd, 
+    revent: u32, 
+    ctxUSER: &AfbCtxData, //&mut EventDataCtx
+) -> Result<(), AfbError>{
+
+    let ctx = ctxUSER.get_ref::<EventDataCtx>()?;
+
     // There is no value initializing a buffer before reading operation
     #[allow(invalid_value)]
     let mut buffer = unsafe { MaybeUninit::<[u8; 256]>::uninit().assume_init() };
@@ -140,15 +147,27 @@ impl SensorHandleCtx {
 struct SensorDataCtx {
     handle: Rc<SensorHandleCtx>,
 }
-AfbVerbRegister!(SensorVerb, sensorcb, SensorDataCtx);
-fn sensorcb(rqt: &AfbRequest, args: &AfbData, ctx: &mut SensorDataCtx) -> Result<(), AfbError> {
+
+struct SensorData2Ctx {
+    handle: Rc<SensorHandleCtx>,   //TMA
+}
+
+//AfbVerbRegister!(SensorVerb, sensorcb, SensorDataCtx);
+fn sensorcb(
+    rqt: &AfbRequest, 
+    args: &AfbRqtData, 
+    ctxUser: &AfbCtxData,//&mut SensorDataCtx
+) -> Result<(), AfbError> {
+
+    let ctx = ctxUser.get_ref::<SensorDataCtx>()?; // TMA ADDED 
+    
     let mut response = AfbParams::new();
     match args.get::<&ApiAction>(0)? {
         ApiAction::READ => {
             let values = ctx.handle.values.get();
             let jsonc= JsoncObj::array();
             for idx in 0..ctx.handle.tic.get_count() {
-                jsonc.insert(values[idx])?;
+                jsonc.insert(idx,values[idx])?; //TMA  definition :insert(&self,idx:usize,value:T) 
             }
             response.push(jsonc)?;
         }
@@ -172,7 +191,11 @@ fn sensorcb(rqt: &AfbRequest, args: &AfbData, ctx: &mut SensorDataCtx) -> Result
 }
 
 // register a new linky sensor
-fn mk_sensor(api: &mut AfbApi, tic: &'static TicObject) -> Result<Rc<SensorHandleCtx>, AfbError> {
+fn mk_sensor(
+    api: &mut AfbApi, 
+    tic: &'static TicObject
+) -> Result<Rc<SensorHandleCtx>, AfbError> {
+    
     let uid = tic.get_uid();
     let name = tic.get_name();
     let event = AfbEvent::new(name);
@@ -187,10 +210,16 @@ fn mk_sensor(api: &mut AfbApi, tic: &'static TicObject) -> Result<Rc<SensorHandl
 
     verb.set_name(uid);
     verb.set_info(tic.get_info());
-    verb.set_action("['read', 'info', 'subscribe', 'unsubscribe']")?;
-    verb.set_callback(Box::new(SensorDataCtx {
+    verb.set_actions("['read', 'info', 'subscribe', 'unsubscribe']")?;
+    verb.set_callback(sensorcb);    //
+    verb.set_context(SensorDataCtx{ 
         handle: ctx.clone(),
-    }));
+    });
+    /*verb.set_callback(Box::new(SensorDataCtx {  // TMA : ISSUE SHALL BE UPDATED
+        handle: ctx.clone(),
+    }));*/
+
+
     verb.finalize()?;
 
     api.add_verb(verb);
@@ -222,7 +251,10 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: LinkyConfig) -> Result<()
     AfbEvtFd::new(config.device)
         .set_fd(event_ctx.handle.get_fd())
         .set_events(AfbEvtFdPoll::IN)
-        .set_callback(Box::new(event_ctx))
+        .set_callback(async_serial_cb)   // TMA ISSUE : SHALL BE REVIEW
+        .set_context(event_ctx)          // TMA ISSUE : SHALL BE REVIEW
+        /* OLD .set_callback(Box::new(event_ctx)) 
+        */
         .start()?;
 
     Ok(())
