@@ -43,10 +43,10 @@ struct EventDataCtx {
 fn async_serial_cb(
     _fd: &AfbEvtFd, 
     revent: u32, 
-    ctxUSER: &AfbCtxData, //&mut EventDataCtx
+    ctx: &AfbCtxData, //&mut EventDataCtx
 ) -> Result<(), AfbError>{
 
-    let ctx = ctxUSER.get_ref::<EventDataCtx>()?;
+    let ctx = ctx.get_ref::<EventDataCtx>()?;
 
     // There is no value initializing a buffer before reading operation
     #[allow(invalid_value)]
@@ -148,26 +148,21 @@ struct SensorDataCtx {
     handle: Rc<SensorHandleCtx>,
 }
 
-struct SensorData2Ctx {
-    handle: Rc<SensorHandleCtx>,   //TMA
-}
-
-//AfbVerbRegister!(SensorVerb, sensorcb, SensorDataCtx);
 fn sensorcb(
     rqt: &AfbRequest, 
     args: &AfbRqtData, 
-    ctxUser: &AfbCtxData,//&mut SensorDataCtx
+    ctx: &AfbCtxData,
 ) -> Result<(), AfbError> {
 
-    let ctx = ctxUser.get_ref::<SensorDataCtx>()?; // TMA ADDED 
-    
+    let ctx = ctx.get_ref::<SensorDataCtx>()?;
+
     let mut response = AfbParams::new();
     match args.get::<&ApiAction>(0)? {
         ApiAction::READ => {
             let values = ctx.handle.values.get();
             let jsonc= JsoncObj::array();
             for idx in 0..ctx.handle.tic.get_count() {
-                jsonc.insert(idx,values[idx])?; //TMA  definition :insert(&self,idx:usize,value:T) 
+                jsonc.insert(idx,values[idx])?;
             }
             response.push(jsonc)?;
         }
@@ -215,10 +210,6 @@ fn mk_sensor(
     verb.set_context(SensorDataCtx{ 
         handle: ctx.clone(),
     });
-    /*verb.set_callback(Box::new(SensorDataCtx {  // TMA : ISSUE SHALL BE UPDATED
-        handle: ctx.clone(),
-    }));*/
-
 
     verb.finalize()?;
 
@@ -251,10 +242,8 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: LinkyConfig) -> Result<()
     AfbEvtFd::new(config.device)
         .set_fd(event_ctx.handle.get_fd())
         .set_events(AfbEvtFdPoll::IN)
-        .set_callback(async_serial_cb)   // TMA ISSUE : SHALL BE REVIEW
-        .set_context(event_ctx)          // TMA ISSUE : SHALL BE REVIEW
-        /* OLD .set_callback(Box::new(event_ctx)) 
-        */
+        .set_callback(async_serial_cb)
+        .set_context(event_ctx)
         .start()?;
 
     Ok(())
