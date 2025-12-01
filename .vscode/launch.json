@@ -5,45 +5,44 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "TtyUSB0",
+            "name": "linky serial",
             "type": "lldb",
-            "preLaunchTask": "binding-native-build",
+            "preLaunchTask": "binding-build",
             "request": "launch",
             "program": "afb-binder",
             "env": {
                 "LD_LIBRARY_PATH": "/usr/local/lib64"
             },
             "args": [
-                "-vvv",
-                "--monitoring",
-                "--trap-faults=0",
-                "--tracereq=all",
-                "--config=afb-binding/etc/binding-linky.json",
+                "-vv",
+                "--trap-faults=0", "--port=1236",
+                "--config=afb-binding/etc/binding-linky-serial.yaml"
             ],
             "cwd": "${workspaceFolder}",
             "initCommands": [
                 "target stop-hook add -n _start -o continue",
-                "settings set target.disable-aslr false",
+                "settings set target.disable-aslr false"
             ]
         },
-                {
-            // reference https://stackoverflow.com/questions/68888706/remote-debug-of-rust-program-in-visual-studio-code
-            "name": "Remote-Upboard",
+        {
+            "name": "linky network",
             "type": "lldb",
-            "request": "custom",
-            "preLaunchTask": "native-debug-setup",
-            "targetCreateCommands": [
-                "target create /usr/local/bin/afb-binder",
-                "target module add /home/fulup/.cargo/build/debug/libafb_linky.so",
-                ],
-            "processCreateCommands": ["gdb-remote upboard.tuxevse.vpn:9000"],
+            "preLaunchTask": "binding-build",
+            "request": "launch",
+            "program": "afb-binder",
+            "env": {
+                "LD_LIBRARY_PATH": "/usr/local/lib64"
+            },
+            "args": [
+                "-vv",
+                "--trap-faults=0", "--port=1236",
+                "--config=afb-binding/etc/binding-linky-network.yaml"
+            ],
+            "cwd": "${workspaceFolder}",
             "initCommands": [
                 "target stop-hook add -n _start -o continue",
-                "settings set target.disable-aslr false",
-                "settings set target.exec-search-paths /home/fulup/.cargo/build/debug",
-                "breakpoint set --name binding_init",
-                "breakpoint set --file binding.rs --line 54"
-                ],
+                "settings set target.disable-aslr false"
+            ]
         },
     ]
 }

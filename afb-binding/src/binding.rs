@@ -12,12 +12,13 @@
 
 use crate::prelude::*;
 use afbv4::prelude::*;
+use linky::prelude::*;
 
 AfbDataConverter!(api_actions, ApiAction);
 use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(rename_all = "lowercase", tag = "action")]
-pub(crate) enum ApiAction {
+pub enum ApiAction {
     #[default]
     READ,
     INFO,
@@ -25,14 +26,14 @@ pub(crate) enum ApiAction {
     UNSUBSCRIBE,
 }
 
-pub(crate) struct LinkyConfig {
-    pub device: &'static str,
-    pub parity: &'static str,
-    pub speed: u32,
+pub struct BindingConfig {
+    pub uid: &'static str,
+    pub source: LinkyConfig,
     pub cycle: u32,
+    pub sensors: JsoncObj,
 }
 
-impl AfbApiControls for LinkyConfig {
+impl AfbApiControls for BindingConfig {
     fn config(&mut self, api: &AfbApi, jconf: JsoncObj) -> Result<(), AfbError> {
         afb_log_msg!(Debug, api, "api={} config={}", api.get_uid(), jconf);
         Ok(())
@@ -46,76 +47,56 @@ impl AfbApiControls for LinkyConfig {
 
 // Binding init callback started at binding load time before any API exist
 // -----------------------------------------
-pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi, AfbError> {
-    afb_log_msg!(Info, rootv4, "config:{}", jconf);
+pub fn binding_init(_rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi, AfbError> {
 
     // add binding custom converter
     api_actions::register()?;
 
-    let uid = if let Ok(value) = jconf.get::<String>("uid") {
-        to_static_str(value)
-    } else {
-        "linky"
+    let uid = jconf.default("uid", "linky")?;
+    let api = jconf.default("api", uid)?;
+    let info = jconf.default("info", "Linky meeter binding")?;
+    let cycle = jconf.default("cycle", 0)?;
+
+    let source = match jconf.optional::<JsoncObj>("serial")? {
+        Some(jserial) => {
+            let device = jserial.default("device", "/dev/ttyUSB0")?;
+            let speed = jserial.default("speed", 9600)?;
+            let parity = jserial.default("parity", "even")?;
+            LinkyConfig::Serial(SerialConfig {
+                device,
+                speed,
+                parity,
+            })
+        }
+
+        None => match jconf.optional::<JsoncObj>("network")? {
+            Some(jnetwork) => {
+                let ip_bind = jnetwork.default("bind", "0.0.0.0")?;
+                let udp_port = jnetwork.default("port", 2000)?;
+                LinkyConfig::Network(NetworkConfig { ip_bind, udp_port })
+            }
+            None => {
+                return afb_error!(
+                    "linky-config-fail",
+                    "unsupported source type: should be serial|network",
+                )
+            }
+        },
     };
 
-    let api = if let Ok(value) = jconf.get::<String>("api") {
-        to_static_str(value)
-    } else {
-        uid
-    };
+    // sensors list is processed within BindingConfig
+    let sensors = jconf.get("sensors")?;
 
-    let info = if let Ok(value) = jconf.get::<String>("info") {
-        to_static_str(value)
-    } else {
-        ""
-    };
-
-    let cycle = if let Ok(value) = jconf.get::<u32>("cycle") {
-        value
-    } else {
-        0
-    };
-
-    let permision = if let Ok(value) = jconf.get::<String>("permision") {
-        AfbPermission::new(to_static_str(value))
-    } else {
-        AfbPermission::new("acl:linky:client")
-    };
-
-    let device = if let Ok(value) = jconf.get::<String>("device") {
-        to_static_str(value)
-    } else {
-        return afb_error!(
-            "linky-config-fail",
-            "mandatory label 'device' missing",
-        )
-    };
-
-    let speed = if let Ok(value) = jconf.get::<u32>("speed") {
-        value
-    } else {
-        1200
-    };
-
-    let parity = if let Ok(value) = jconf.get::<String>("parity") {
-        to_static_str(value)
-    } else {
-        "even"
-    };
-
-    // register data converter
-    // v106::register_datatype() ?;
-
-    let config = LinkyConfig {
-        device,
-        speed,
-        parity,
-        cycle,
-    };
+    let config: BindingConfig = BindingConfig { uid, source, cycle, sensors };
 
     // create backend API
-    let api = AfbApi::new(api).set_info(info).set_permission(permision);
-    register_verbs(api, config)?;
+    let api = AfbApi::new(api).set_info(info);
+    register_verbs(api, &config)?;
+
+    // if acls defined apply them
+    if let Some(value) = jconf.optional::<&str>("permission")? {
+        api.set_permission(AfbPermission::new(value));
+    };
 
     Ok(api.finalize()?)
 }

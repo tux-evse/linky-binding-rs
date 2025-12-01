@@ -25,7 +25,6 @@ mod verbs;
 mod binding;
 
 pub(crate) mod prelude {
-   // pub(crate) use crate::codec::*;
-    pub(crate) use crate::verbs::*;
-    pub(crate) use crate::binding::*;
+    pub use crate::verbs::*;
+    pub use crate::binding::*;
 }

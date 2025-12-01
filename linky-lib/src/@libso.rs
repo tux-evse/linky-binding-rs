@@ -25,8 +25,8 @@ mod test;
 #[path = "../capi/capi-mod.rs"]
 mod capi;
 
-#[path = "serial-read.rs"]
-mod serial;
+#[path = "linky-read.rs"]
+mod linky;
 
 #[path = "parser-tic.rs"]
 mod parser;
@@ -34,5 +34,5 @@ mod parser;
 pub mod prelude {
     pub(crate) use crate::capi::*;
     pub use crate::parser::*;
-    pub use crate::serial::*;
+    pub use crate::linky::*;
 }

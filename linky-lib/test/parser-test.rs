@@ -8,7 +8,7 @@ use crate::prelude::*;
 use std::cell::Cell;
 use std::ffi::CString;
 
-fn parse_test(data: &str) -> Result<TicValue, LinkyError> {
+fn parse_test(data: &str) -> Result<TicMsg, LinkyError> {
     let text: String = data
         .chars()
         .map(|x| match x {
@@ -144,7 +144,7 @@ fn parse_misc() {
 
 #[test]
 fn checksum() {
-    let serial = SerialRaw {
+    let serial = SerialHandle {
         raw_fd: Cell::new(0),
         devname: CString::new("totot").unwrap(),
         speed: SerialSpeed::B9600,

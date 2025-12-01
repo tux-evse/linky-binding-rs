@@ -1,0 +1,38 @@
+name: afb-linky
+no-ldpaths: true
+port: 1236
+alias:
+  - /devtools:/usr/share/afb-ui-devtools/binder
+monitoring: true
+tracereq: all
+binding:
+  - uid: linky-meeter
+    api: linky
+    permission: acl:linky
+    //"path": /usr/redpesk/linky-binding-rs/lib/libafb_linky.so
+    path: $HOME/.cargo/build/debug/libafb_linky.so
+    info: Linky French meeter api
+    cycle: 25  # force event each 25s even when value does not change
+    serial:
+      - device: /dev/ttyUSB0
+        speed: 9600
+        parity: even
+    sensors:
+        # IINST:   # 60-90A meeting only
+        # ADSC:    # meeting code addr
+        URMS:      # effective tension
+        IRMS:      # effective current
+        UMOY:      # voltage average
+        MSG:       # short message
+        NTARF:     # current tariff index
+        ADPS:      # Avertissent depassement puissance in A
+        TARIFF:    # Current Tariff name and label
+        ENERGY:    # Total energy meeter
+        SINSTS:    # Current used power
+        SINSTI:    # Current injected power
+        POWER-IN:  # Today time & max power
+        POWER-OUT: # Yesterday time & max power
+        STGE:      # Linky status register
+        DPM1:      # Mobile Pic start
+        FPM1:      # Mobile Pic end
+
