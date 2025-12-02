@@ -7,3 +7,4 @@ _*
 .~lock*
 *profraw
 cargo-test*
+Cargo.lock

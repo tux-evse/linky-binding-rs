@@ -2,7 +2,6 @@
 
 This is Linky Rust afb binding
 
-
 ## Source configuration
 
 Linky binding support with direct serial as /dev/tty and network client UDP server mode
@@ -10,21 +9,25 @@ Linky binding support with direct serial as /dev/tty and network client UDP serv
 ### cycle
 
 For sensor event push even when data does not change. Default is 0 and event are only push when a sensor value changes.
-```
+
+```bash
 # force event push every 25s
 cycle: 25
 ```
 
 ### Network
+
 default bind is 0.0.0.0 (all host interfaces). Port as no default value and should be define
-```
+
+```bash
 network:
     - bind: 192.168.1.61
     port: 2000
 ```
 
 ### Serial
-```
+
+```bash
 serial:
     - device: /dev/ttyUSB0
     speed: 9600
@@ -59,25 +62,27 @@ sensors:
 
 ## debug
 
-### Serial Linky connectivity check:
+### Serial Linky connectivity check
+
 Depending on your configuration your Linky meeter may talk either 1200 or 9600 baud. In both case it uses parity:odd/7bits mode. To change from 1200 to 9600 contact your energy provider that may change meeter mode remotely.
 
-```
+```bash
 picocom -b 9600 -d 7 -p o /dev/ttyUSB_TIC
 ```
 
-### Network Linky connectivity check:
+### Network Linky connectivity check
 
 socat is a simple way to check that your host accepts incoming UDP packets. If your packets are not 'human' readable then your USR-TCP232 serial speed/parity is probably not correctly configured.
 
-```
- socat - UDP4-LISTEN:2000
+```bash
+socat - UDP4-LISTEN:2000
 ```
 
 ### Serial/TTL_to_UDP config
 
 When using a USR-TCP232 device you should use USR-TCP232-Config.js to configure your device to point to your host/port UDP port (Warning: do not forget to open port on your firewall)
-```
+
+```javascript
 # update ttl232_to_udp/USR-TCP232-Config.js with
 var DST_ADDR="192.168.1.98";  // binding target IP addr
 var DST_PORT=2000;            // binding listening port

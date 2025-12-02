@@ -5,8 +5,6 @@
 // Attention pour simplifier l'écriture des test le séparateur '\i' est remplacé par '|'
 
 use crate::prelude::*;
-use std::cell::Cell;
-use std::ffi::CString;
 
 fn parse_test(data: &str) -> Result<TicMsg, LinkyError> {
     let text: String = data
@@ -144,34 +142,38 @@ fn parse_misc() {
 
 #[test]
 fn checksum() {
-    let serial = SerialHandle {
-        raw_fd: Cell::new(0),
-        devname: CString::new("totot").unwrap(),
-        speed: SerialSpeed::B9600,
-        pflags: 0,
-        iflags: 0 as cglue::tcflag_t,
-        cflags: 0 as cglue::tcflag_t,
-        lflags: 0 as cglue::tcflag_t,
-    };
-    let handle = LinkyHandle {
-        portname: "/dev/dummy",
-        handle: serial,
-    };
+    let device = "/dev/ttyUSB0";
+    let speed = 9600;
+    let parity = "even";
+
+    let source = LinkyConfig::Serial(SerialConfig {
+        device,
+        speed,
+        parity,
+    });
+
+    let handle = LinkyHandle::new(&source).unwrap();
 
     let buffer1 = [
         83, 84, 71, 69, 9, 48, 48, 50, 65, 48, 48, 49, 49, 9, 58, 13, 10,
     ];
+
     let line = handle.checksum(&buffer1, buffer1.len()).unwrap();
+
     println!("buffer1 = {}", line);
 
     let buffer2 = [
         85, 77, 79, 89, 50, 9, 72, 50, 51, 49, 49, 49, 54, 49, 52, 48, 48, 48, 48, 9, 48, 48, 48,
-        9, 34, 13, 10
+        9, 34, 13, 10,
     ];
+
     let line = handle.checksum(&buffer2, buffer2.len()).unwrap();
     println!("buffer2 = {}", line);
 
-    let buffer3= [83, 77, 65, 88, 83, 78, 49, 45, 49, 9, 72, 50, 51, 49, 49, 49, 53, 49, 55, 48, 56, 52, 50, 9, 48, 48, 48, 50, 50, 9, 67, 13, 10];
+    let buffer3 = [
+        83, 77, 65, 88, 83, 78, 49, 45, 49, 9, 72, 50, 51, 49, 49, 49, 53, 49, 55, 48, 56, 52, 50,
+        9, 48, 48, 48, 50, 50, 9, 67, 13, 10,
+    ];
     let line = handle.checksum(&buffer3, buffer3.len()).unwrap();
     println!("buffer3 = {}", line);
 }

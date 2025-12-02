@@ -15,9 +15,6 @@
     html_favicon_url = "https://iot.bzh/images/defaults/favicon.ico"
 )]
 
-#[cfg(not(afbv4))]
-extern crate afbv4;
-
 #[cfg(test)]
 #[path = "../test/parser-test.rs"]
 mod test;
@@ -33,6 +30,6 @@ mod parser;
 
 pub mod prelude {
     pub(crate) use crate::capi::*;
-    pub use crate::parser::*;
     pub use crate::linky::*;
+    pub use crate::parser::*;
 }

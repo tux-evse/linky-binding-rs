@@ -95,7 +95,7 @@ impl LinkyHandle {
     }
 
     pub fn checksum<'a>(&self, buffer: &'a [u8], count: usize) -> Result<&'a str, LinkyError> {
-        const CHECH_SUM_OFFSET:usize = 2;
+        const CHECH_SUM_OFFSET: usize = 2;
 
         // verify checksum take all data from 'etiquette" to last 'delimiter'
         let mut sum: u64 = 0;
@@ -125,7 +125,7 @@ impl LinkyHandle {
     }
 
     pub fn decode(&self, buffer: &mut [u8]) -> Result<(TicMsg, bool), LinkyError> {
-        let result= match self.handle.get_msgs(buffer) {
+        let result = match self.handle.get_msgs(buffer) {
             Err(error) => {
                 afb_log_msg!(Error, None, "Fail to read error={}", (error.to_string()));
                 return Err(LinkyError::SerialError(error.to_string()));
@@ -138,7 +138,6 @@ impl LinkyHandle {
                     afb_log_msg!(Warning, None, "Invalid buffer={:?}", buffer);
                     return Err(LinkyError::RetryLater);
                 } else {
-
                     let data = self.checksum(buffer, count)?;
                     (tic_from_str(data)?, eob)
                 }
