@@ -110,7 +110,7 @@ impl LinkyHandle {
         };
 
         // move byte buffer to printable string
-        let line = match str::from_utf8(data) {
+        let line = match std::str::from_utf8(data) {
             Err(_) => return Err(LinkyError::ChecksumError("not uft".to_string())),
             Ok(data) => data,
         };

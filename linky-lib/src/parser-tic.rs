@@ -198,7 +198,7 @@ impl TimeStampData {
     }
 
     fn token_to_num(&self, token: &[u8]) -> Result<u8, AfbError> {
-        let token = match str::from_utf8(token) {
+        let token = match std::str::from_utf8(token) {
             Ok(value) => value,
             Err(_err) => return afb_error!("time-stamp-invalid", "invalid utf8 token:{:?}", token),
         };

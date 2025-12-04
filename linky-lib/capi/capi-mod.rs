@@ -110,7 +110,7 @@ pub enum PortFlag {
     OSYNC = cglue::TTY_O_SYNC,
 }
 
-const RING_BUFFER_SZ:usize = 512;
+const RING_BUFFER_SZ: usize = 512;
 pub struct BufferRing {
     empty: bool,
     start: usize,
@@ -132,7 +132,7 @@ impl BufferRing {
         println!("### ------------------------");
         println!("### Buffer: start:{} stop:{}", self.start, self.stop);
         println!("### Buffer: hexa {:02x?}", &self.data[0..self.stop]);
-        match str::from_utf8(&self.data[0..self.stop]) {
+        match std::str::from_utf8(&self.data[0..self.stop]) {
             Ok(value) => println!("### Buffer text ->{}<-", value),
             Err(_) => println!("### Buffer hexa ->{:x?}", &self.data[0..self.stop]),
         }
@@ -141,7 +141,7 @@ impl BufferRing {
 
     pub fn _print_one_line(&self, buffer_out: &mut [u8], count: usize) {
         if count > 3 {
-            match str::from_utf8(&buffer_out[0..count - 3]) {
+            match std::str::from_utf8(&buffer_out[0..count - 3]) {
                 Ok(value) => println!("*** Line text:[..{}] ->{}<-", count - 2, value),
                 Err(_) => println!(
                     "*** Line hexa:[..{}] ->{:02x?}",
