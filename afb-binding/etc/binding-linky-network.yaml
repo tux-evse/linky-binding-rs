@@ -1,10 +1,16 @@
 name: afb-linky
 no-ldpaths: true
 no-httpd: true
+log: error+warning+notice
 alias:
-  - /:/usr/share/afb-ui-devtools/binder
-monitoring: true
-tracereq: all
+  - /devtools:/usr/share/afb-ui-devtools/binder
+monitoring: false
+tracereq: none
+extension:
+- path: "/usr/redpesk/afb-mqtt/lib/libafb-mqtt-ext.so"
+"@extconfig":
+  MQTT:
+    mqtt-config-file: "${BASEDIR}/etc/linky-mqtt-config.yaml"
 binding:
   - uid: linky-meeter
     api: linky
@@ -13,7 +19,7 @@ binding:
     path: libafb_linky.so
     # path: ./target/debug/libafb_linky.so
     info: Linky French meeter api
-    cycle: 25  # force event each 25 cycle even when value does not change
+    cycle: 25  # force event each 25s even when value does not change
     network:
       - bind: 0.0.0.0  # default 0.0.0.0
         port: 2000     # no default should be defined

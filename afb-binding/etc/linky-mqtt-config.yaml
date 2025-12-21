@@ -1,0 +1,31 @@
+broker-host: fulup-beagle.local
+broker-port: 1883
+broker-user: linky
+broker-pwd: '!GizKoz007'
+mapping-type: topic-pair
+publish-topic: linky
+publish-uid: true
+to-mqtt:
+  event:
+    # auto-register to following events
+    registrations:
+      - api: linky
+        verb: SINSTS
+        args:
+          action: subscribe
+      - api: linky
+        verb: URMS
+        args:
+          action: subscribe
+      - api: linky
+        verb: IRMS
+        args:
+          action: subscribe
+      - api: linky
+        verb: ENERGY-COUNTERS
+        args:
+          action: subscribe
+    template:
+      name: ${event_name}
+      type: attributeReport
+      data: ${data}
