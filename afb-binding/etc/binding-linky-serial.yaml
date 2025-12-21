@@ -10,7 +10,7 @@ binding:
     api: linky
     permission: acl:linky
     //"path": /usr/redpesk/linky-binding-rs/lib/libafb_linky.so
-    path: $HOME/.cargo/build/debug/libafb_linky.so
+    path: libafb_linky.so
     info: Linky French meeter api
     cycle: 25  # force event each 25s even when value does not change
     serial:

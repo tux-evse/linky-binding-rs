@@ -157,40 +157,62 @@ impl SensorStampCtx {
     }
 }
 
+
 pub struct EnergyCountersCtx {
     tic: &'static TicObject,
-    values: RefCell<[i32;2]>,
+    event: &'static AfbEvent,
+    values: RefCell<SensorNumericData>,
 }
 
 impl EnergyCountersCtx {
-    pub fn new(tic: &'static TicObject) -> Result<Self, AfbError> {
-        let obj = Self {
+    pub fn new(tic: &'static TicObject, event: &'static AfbEvent) -> Self {
+        Self {
             tic,
-            values: RefCell::new([0;2]),
-        };
-        Ok(obj)
+            event,
+            values: RefCell::new(SensorNumericData {
+                cycle: 0,
+                counters: [0; 4],
+            }),
+        }
     }
 
-    pub fn updated(&self, idx: usize, energy: i32) -> Result<(), AfbError> {
+    pub fn updated(&self, cycle: u32, data: TicMsg, idx: usize, value: i32) -> Result<(), AfbError> {
         let mut values = match self.values.try_borrow_mut() {
-            Err(_) => return afb_error!("update-energy-ctx-fail", "fail to access energy value ctx"),
+            Err(_) => {
+                return afb_error!("update-energy-ctx-fail", "fail to access energy value ctx")
+            }
             Ok(value) => value,
         };
 
-        values[idx] = energy;
+        let forced = if cycle > 0 {
+            if values.cycle == cycle {
+                values.cycle = 0;
+                true
+            } else {
+                values.cycle += 1;
+                false
+            }
+        } else {
+            false
+        };
+
+        if value != values.counters[idx] || forced {
+            values.counters[idx] = value;
+            values.cycle = 0;
+            self.event.push(data);
+        }
         Ok(())
     }
 }
 
-
 pub struct SensorPowerCtx {
     tic: &'static TicObject,
-    values: RefCell<[TimeStampData;2]>,
+    values: RefCell<[TimeStampData; 2]>,
 }
 
 impl SensorPowerCtx {
     pub fn new(tic: &'static TicObject) -> Result<Self, AfbError> {
-        let empty=TimeStampData::new("H000000000000", None)?;
+        let empty = TimeStampData::new("H000000000000", None)?;
         Ok(Self {
             tic,
             values: RefCell::new([empty.clone(), empty]),
@@ -199,7 +221,9 @@ impl SensorPowerCtx {
 
     pub fn updated(&self, idx: usize, data: TimeStampData) -> Result<(), AfbError> {
         let mut values = match self.values.try_borrow_mut() {
-            Err(_) => return afb_error!("update-power-ctx-fail", "fail to access sensor value ctx"),
+            Err(_) => {
+                return afb_error!("update-power-ctx-fail", "fail to access sensor value ctx")
+            }
             Ok(value) => value,
         };
         values[idx] = data;
@@ -314,7 +338,6 @@ fn async_msg_cb(
                         TicMsg::ADIR2(value) => _profile_num_update!(adsp, 2, ctx.cycle, value),
                         TicMsg::ADIR3(value) => _profile_num_update!(adsp, 3, ctx.cycle, value),
 
-
                         // cutting power
                         TicMsg::PCOUP(value) => _profile_num_update!(pcou, 0, ctx.cycle, value),
                         TicMsg::PREF(value) => _profile_num_update!(pcou, 1, ctx.cycle, value),
@@ -344,11 +367,13 @@ fn async_msg_cb(
                         // Tariff index
                         TicMsg::NTARF(value) => _profile_num_update!(ntarf, 0, ctx.cycle, value),
                         TicMsg::NJOURF(value) => _profile_num_update!(njourf, 0, ctx.cycle, value),
-                        TicMsg::NJOURF_T(value) => _profile_num_update!(njourf, 1, ctx.cycle, value),
+                        TicMsg::NJOURF_T(value) => {
+                            _profile_num_update!(njourf, 1, ctx.cycle, value)
+                        }
 
-                        // Power
-                        TicMsg::EAST(value) => _profile_ronly_update!(energy, 0, value),
-                        TicMsg::EAIT(value) => _profile_ronly_update!(energy, 1, value),
+                        // Power Energy meeter
+                        TicMsg::EAST(value) => _profile_num_update!(energy, 0, ctx.cycle, value),
+                        TicMsg::EAIT(value) => _profile_num_update!(energy, 1, ctx.cycle, value),
                         TicMsg::SMAXSN(value) => _profile_ronly_update!(powerin, 0, value),
                         TicMsg::SMAXSN_Y(value) => _profile_ronly_update!(powerin, 1, value),
                         TicMsg::SMAXIN(value) => _profile_ronly_update!(powerout, 0, value),
@@ -368,9 +393,9 @@ fn async_msg_cb(
 
                         // average voltage
                         TicMsg::UMOY1(value) => _profile_ronly_update!(umoy, 0, value),
+                        //TicMsg::UMOY1(value) => _profile_num_update!(umoy, 1, value),
                         //TicMsg::UMOY2(value) => _profile_num_update!(umoy, 2, value),
                         //TicMsg::UMOY3(value) => _profile_num_update!(umoy, 3,value),
-
                         _ => {} // ignore any other data
                     };
                     // end of buffer reached, wait for new one
@@ -385,7 +410,6 @@ fn async_msg_cb(
     }
     Ok(())
 }
-
 
 struct NumericSensorVcb {
     handle: Rc<SensorNumericCtx>,
@@ -449,8 +473,7 @@ fn mk_numeric_sensor(
     let name = tic.get_name();
     let event = AfbEvent::new(name);
     let verb = AfbVerb::new(name);
-
-    let ctx = Rc::new(SensorNumericCtx::new(tic, event, multi!=0));
+    let ctx = Rc::new(SensorNumericCtx::new(tic, event, multi != 0));
 
     verb.set_name(uid);
     verb.set_info(tic.get_info());
@@ -518,7 +541,7 @@ fn mk_text_sensor(
     let name = tic.get_name();
     let verb = AfbVerb::new(name);
 
-    let ctx = Rc::new(SensorTextCtx::new(tic, multi!=0));
+    let ctx = Rc::new(SensorTextCtx::new(tic, multi != 0));
 
     verb.set_name(uid);
     verb.set_info(tic.get_info());
@@ -593,14 +616,20 @@ struct RegisterSensorVcb {
     handle: Rc<SensorRegisterCtx>,
 }
 
-fn sensor_register_cb(rqt: &AfbRequest, args: &AfbRqtData, ctx: &AfbCtxData) -> Result<(), AfbError> {
+fn sensor_register_cb(
+    rqt: &AfbRequest,
+    args: &AfbRqtData,
+    ctx: &AfbCtxData,
+) -> Result<(), AfbError> {
     let ctx = ctx.get_ref::<RegisterSensorVcb>()?;
 
     let mut response = AfbParams::new();
     match args.get::<&ApiAction>(0)? {
         ApiAction::READ => {
             let values = match ctx.handle.values.try_borrow() {
-                Err(_) => return afb_error!("sensor-register-cb", "fail to access sensor value ctx"),
+                Err(_) => {
+                    return afb_error!("sensor-register-cb", "fail to access sensor value ctx")
+                }
                 Ok(value) => value,
             };
 
@@ -645,22 +674,26 @@ struct EnergyCountersVcb {
     handle: Rc<EnergyCountersCtx>,
 }
 
-fn energy_counter_cb(rqt: &AfbRequest, args: &AfbRqtData, ctx: &AfbCtxData) -> Result<(), AfbError> {
+fn energy_counter_cb(
+    rqt: &AfbRequest,
+    args: &AfbRqtData,
+    ctx: &AfbCtxData,
+) -> Result<(), AfbError> {
     let ctx = ctx.get_ref::<EnergyCountersVcb>()?;
 
     let mut response = AfbParams::new();
     match args.get::<&ApiAction>(0)? {
         ApiAction::READ => {
-            const DIRECTIONS:[&str;2]= ["consumed", "injected"];
+            const DIRECTIONS: [&str; 2] = ["consumed", "injected"];
             let values = match ctx.handle.values.try_borrow() {
                 Err(_) => return afb_error!("sensor-energy-cb", "fail to access sensor value ctx"),
                 Ok(value) => value,
             };
 
             // push power and data if any
-            let jsonc= JsoncObj::new();
-            for idx in 0 .. 2 {
-                jsonc.add(DIRECTIONS[idx], values[idx])?;
+            let jsonc = JsoncObj::new();
+            for idx in 0..2 {
+                jsonc.add(DIRECTIONS[idx], values.counters[idx])?;
             }
             response.push(jsonc)?;
         }
@@ -672,7 +705,12 @@ fn energy_counter_cb(rqt: &AfbRequest, args: &AfbRqtData, ctx: &AfbCtxData) -> R
             };
             response.push(info)?;
         }
-        _ => return afb_error!("sensor-energy-cb", "read only data without subscription"),
+        ApiAction::SUBSCRIBE => {
+            ctx.handle.event.subscribe(rqt)?;
+        }
+        ApiAction::UNSUBSCRIBE => {
+            ctx.handle.event.unsubscribe(rqt)?;
+        }
     }
 
     rqt.reply(response, 0);
@@ -687,16 +725,19 @@ fn mk_energy_counters(
     let uid = tic.get_uid();
     let name = tic.get_name();
     let verb = AfbVerb::new(name);
-    let ctx = Rc::new(EnergyCountersCtx::new(tic)?);
+    let event = AfbEvent::new(name);
+    let ctx = Rc::new(EnergyCountersCtx::new(tic, event));
     verb.set_name(uid);
     verb.set_info(tic.get_info());
-    verb.set_actions("['read', 'info']")?;
+    verb.set_actions("['read', 'info', 'subscribe', 'unsubscribe']")?;
     verb.set_callback(energy_counter_cb); //
     verb.set_context(EnergyCountersVcb {
         handle: ctx.clone(),
     });
     verb.finalize()?;
     api.add_verb(verb);
+    api.add_event(event);
+
     Ok(ctx)
 }
 
@@ -755,7 +796,12 @@ fn mk_profile_sensor(
     let name = tic.get_name();
     let verb = AfbVerb::new(name);
 
-    let ctx = Rc::new(SensorProfileCtx::new(tic, "next-day", "next-pic", multi!=0));
+    let ctx = Rc::new(SensorProfileCtx::new(
+        tic,
+        "next-day",
+        "next-pic",
+        multi != 0,
+    ));
 
     verb.set_name(uid);
     verb.set_info(tic.get_info());
@@ -770,7 +816,6 @@ fn mk_profile_sensor(
     Ok(ctx)
 }
 
-
 struct PowerSensorVcb {
     handle: Rc<SensorPowerCtx>,
 }
@@ -781,15 +826,15 @@ fn sensor_power_cb(rqt: &AfbRequest, args: &AfbRqtData, ctx: &AfbCtxData) -> Res
     let mut response = AfbParams::new();
     match args.get::<&ApiAction>(0)? {
         ApiAction::READ => {
-            const DAYS:[&str;2]= ["today", "yesterday"];
+            const DAYS: [&str; 2] = ["today", "yesterday"];
             let values = match ctx.handle.values.try_borrow() {
                 Err(_) => return afb_error!("sensor-power-cb", "fail to access sensor value ctx"),
                 Ok(value) => value,
             };
 
             // push power and data if any
-            let jsonc= JsoncObj::new();
-            for idx in 0 .. 2 {
+            let jsonc = JsoncObj::new();
+            for idx in 0..2 {
                 jsonc.add(DAYS[idx], values[idx].to_jsonc()?)?;
             }
             response.push(jsonc)?;
@@ -830,7 +875,6 @@ fn mk_power_sensor(
     Ok(ctx)
 }
 
-
 pub fn register_verbs(api: &mut AfbApi, config: &BindingConfig) -> Result<(), AfbError> {
     // register custom parser afb-v4 type within binder
     linky::prelude::tic_register_type()?;
@@ -841,7 +885,7 @@ pub fn register_verbs(api: &mut AfbApi, config: &BindingConfig) -> Result<(), Af
     };
 
     let handle = LinkyHandle::new(&config.source)?;
-        let ntarf = match config.sensors.optional("NTARF")? {
+    let ntarf = match config.sensors.optional("NTARF")? {
         Some(count) => Some(mk_numeric_sensor(api, &TicObject::NTARF, count)?),
         None => None,
     };
@@ -884,7 +928,6 @@ pub fn register_verbs(api: &mut AfbApi, config: &BindingConfig) -> Result<(), Af
         Some(count) => Some(mk_text_sensor(api, &TicObject::ADSC, count)?),
         None => None,
     };
-
 
     let msg = match config.sensors.optional("MSG")? {
         Some(count) => Some(mk_text_sensor(api, &TicObject::MSG, count)?),

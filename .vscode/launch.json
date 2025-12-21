@@ -9,9 +9,9 @@
             "type": "lldb",
             "preLaunchTask": "binding-build",
             "request": "launch",
-            "program": "afb-binder",
+            "program": "/usr/bin/afb-binder",
             "env": {
-                "LD_LIBRARY_PATH": "/usr/local/lib64"
+                "LD_LIBRARY_PATH": "${workspaceFolder}/target/debug"
             },
             "args": [
                 "-vv",
@@ -20,7 +20,7 @@
             ],
             "cwd": "${workspaceFolder}",
             "initCommands": [
-                "target stop-hook add -n _start -o continue",
+                // "target stop-hook add -n _start -o continue",
                 "settings set target.disable-aslr false"
             ]
         },
@@ -29,9 +29,9 @@
             "type": "lldb",
             "preLaunchTask": "binding-build",
             "request": "launch",
-            "program": "afb-binder",
+            "program": "/usr/bin/afb-binder",
             "env": {
-                "LD_LIBRARY_PATH": "/usr/local/lib64"
+                "LD_LIBRARY_PATH": "${workspaceFolder}/target/debug"
             },
             "args": [
                 "-vv",
@@ -40,7 +40,7 @@
             ],
             "cwd": "${workspaceFolder}",
             "initCommands": [
-                "target stop-hook add -n _start -o continue",
+                //"target stop-hook add -n _start -o continue",
                 "settings set target.disable-aslr false"
             ]
         },

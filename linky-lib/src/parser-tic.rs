@@ -401,7 +401,7 @@ impl TicObject {
         unit: TicUnit::Volt,
     };
     pub const ENERGY: TicObject = TicObject {
-        uid: "ENERGY-COUNTERS",
+        uid: "ENERGY",
         name: "Energy Global",
         info: "Total consumes/injected counters average",
         unit: TicUnit::Whour,
