@@ -390,7 +390,7 @@ pub struct TicObject {
 impl TicObject {
     pub const STGE: TicObject = TicObject {
         uid: "STGE",
-        name: "meeter register",
+        name: "Meeter-Register",
         info: "linky meeter status register",
         unit: TicUnit::None,
     };
@@ -402,7 +402,7 @@ impl TicObject {
     };
     pub const ENERGY: TicObject = TicObject {
         uid: "ENERGY",
-        name: "Energy Global",
+        name: "Energy Counter",
         info: "Total consumes/injected counters average",
         unit: TicUnit::Whour,
     };
@@ -421,15 +421,15 @@ impl TicObject {
     };
 
     pub const POWERIN: TicObject = TicObject {
-        uid: "POWER-IN",
-        name: "Power-In",
+        uid: "POWERIN",
+        name: "Power In",
         info: "Max consumed power (Today/Yesterday)",
         unit: TicUnit::VoltAmpere,
     };
 
     pub const POWEROUT: TicObject = TicObject {
-        uid: "POWER-OUT",
-        name: "Power-Out",
+        uid: "POWEROUT",
+        name: "Power Out",
         info: "Max Injected power (today/yesterday)",
         unit: TicUnit::VoltAmpere,
     };
