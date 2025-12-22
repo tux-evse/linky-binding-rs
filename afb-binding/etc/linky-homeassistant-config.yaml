@@ -1,4 +1,4 @@
-# reference 
+# reference
 # https://www.home-assistant.io/integrations/sensor.mqtt/
 # device classes: https://www.home-assistant.io/integrations/sensor/#device-class
 # State template: https://forum.hacf.fr/t/unites-de-mesure/64577/8
@@ -7,7 +7,6 @@
 sensor:
   - default_entity_id: sensor.linky_power
     unique_id: linky-instant-power
-    object_id: linky-meeter-instant-power
     device:
       identifiers: Linky
       name: Linky-Meeter
@@ -22,7 +21,6 @@ sensor:
 
   - default_entity_id: sensor.linky_current
     unique_id: linky-instant-current
-    object_id: linky-meeter-instant-current
     device:
       identifiers: Linky
       name: Linky-Meeter
@@ -32,11 +30,10 @@ sensor:
     device_class: current
     unit_of_measurement: A
     state_topic: linky/instant-current
-    value_template:  "{{ value_json.data.IRMS }}"
+    value_template:  "{{ value_json.data.IRMS1 }}"
     enabled_by_default: true
 
-  - default_entity_id: sensor.linky_tension
-    object_id: linky-meeter-instant-voltage
+  - default_entity_id: sensor.linky_voltage
     unique_id: linky-instant-voltage
     device:
       identifiers: Linky
@@ -48,4 +45,19 @@ sensor:
     device_class: voltage
     state_topic: linky/instant-voltage
     value_template: "{{ value_json.data.URMS1 }}"
+    enabled_by_default: true
+
+  - default_entity_id: sensor.linky_energy
+    unique_id: linky-instant-energy
+    device:
+      identifiers: Linky
+      name: Linky-Meeter
+      model: Linky French Home Meeter
+      model_id: linky-v3
+    state_class: measurement
+    state_class: total_increasing
+    unit_of_measurement: kWh
+    device_class: energy
+    state_topic: linky/energy-counter
+    value_template: "{{ value_json.data.EAST | float / 1000 }}"
     enabled_by_default: true

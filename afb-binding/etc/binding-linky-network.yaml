@@ -3,7 +3,7 @@ no-ldpaths: true
 no-httpd: true
 log: error+warning+notice
 alias:
-  - /devtools:/usr/share/afb-ui-devtools/binder
+  - /:/usr/share/afb-ui-devtools/binder
 monitoring: false
 tracereq: none
 extension:

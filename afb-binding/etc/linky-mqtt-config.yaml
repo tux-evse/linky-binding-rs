@@ -22,7 +22,7 @@ to-mqtt:
         args:
           action: subscribe
       - api: linky
-        verb: ENERGY-COUNTERS
+        verb: energy
         args:
           action: subscribe
     template:
