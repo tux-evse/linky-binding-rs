@@ -13,6 +13,7 @@
 use crate::prelude::*;
 use afbv4::prelude::*;
 use linky::prelude::*;
+use std::time::Duration;
 
 AfbDataConverter!(api_actions, ApiAction);
 use serde::{Deserialize, Serialize};
@@ -29,7 +30,7 @@ pub enum ApiAction {
 pub struct BindingConfig {
     pub uid: &'static str,
     pub source: LinkyConfig,
-    pub cycle: u32,
+    pub cycle: Option<Duration>,
     pub sensors: JsoncObj,
 }
 
@@ -55,7 +56,10 @@ pub fn binding_init(_rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbAp
     let uid = jconf.default("uid", "linky")?;
     let api = jconf.default("api", uid)?;
     let info = jconf.default("info", "Linky meeter binding")?;
-    let cycle = jconf.default("cycle", 0)?;
+    let cycle = match jconf.optional("cycle")? {
+        None => None,
+        Some(value) => Some(Duration::from_secs(value)),
+    };
 
     let source = match jconf.optional::<JsoncObj>("serial")? {
         Some(jserial) => {

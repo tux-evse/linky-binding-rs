@@ -10,7 +10,8 @@ extension:
 - path: "/usr/redpesk/afb-mqtt/lib/libafb-mqtt-ext.so"
 "@extconfig":
   MQTT:
-    mqtt-config-file: "${BASEDIR}/etc/linky-mqtt-config.yaml"
+    # mqtt-config-file: "${BASEDIR}/etc/linky-mqtt-config.yaml"
+    config: { "$ref": "${BASEDIR}/etc/linky-mqtt-config.yaml" }
 binding:
   - uid: linky-meeter
     api: linky

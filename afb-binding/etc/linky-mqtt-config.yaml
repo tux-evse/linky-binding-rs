@@ -1,7 +1,7 @@
-broker-host: fulup-beagle.local
+broker-host: "${MQTT_HOSTNAME}"
+broker-user: "${MQTT_USERNAME}"
+broker-pwd: "${MQTT_PASSWORD}"
 broker-port: 1883
-broker-user: linky
-broker-pwd: "$MQTT_PASSWD"
 mapping-type: topic-pair
 publish-topic: linky
 publish-extend: true
@@ -26,6 +26,4 @@ to-mqtt:
         args:
           action: subscribe
     template:
-      name: ${event_name}
-      type: attributeReport
-      data: ${data}
+      data: "%{data}"

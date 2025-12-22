@@ -1,8 +1,6 @@
 # reference 
 # https://www.home-assistant.io/integrations/sensor.mqtt/
 # device classes: https://www.home-assistant.io/integrations/sensor/#device-class
-# config templating: https://www.home-assistant.io/docs/configuration/templating/#home-assistant-template-extensions
-# MQTT publish: topic 'zigbee2mqtt/Energie-Eau-Chaude', payload '{"current":0.02,"energy":4210.5,"indicator_mode":null,"linkquality":120,"power":3,"power_outage_memory":null,"state":"ON","update":{"installed_version":-1,"latest_version":-1,"state":null},"voltage":228}'
 # State template: https://forum.hacf.fr/t/unites-de-mesure/64577/8
 
 
@@ -11,55 +9,43 @@ sensor:
     unique_id: linky-instant-power
     object_id: linky-meeter-instant-power
     device:
+      identifiers: Linky
+      name: Linky-Meeter
       model: Linky French Home Meeter
       model_id: linky-v3
-      name: Linky-Meeter
     state_class: measurement
     device_class: apparent_power
     unit_of_measurement: kVA
-    state_topic: linky
+    state_topic: linky/instant-power
+    value_template: "{{ value_json.data.SINSTS | float / 1000 }}"
     enabled_by_default: true
-    value_template: >- 
-      {% if value_json.data.SINSTS is defined  %}
-        {{ value_json.data.SINSTS | float / 1000 }}
-      {% else %}
-        {{ this.state }}  
-      {% endif %}
 
   - default_entity_id: sensor.linky_current
     unique_id: linky-instant-current
     object_id: linky-meeter-instant-current
     device:
+      identifiers: Linky
+      name: Linky-Meeter
       model: Linky French Home Meeter
       model_id: linky-v3
-      name: Linky-Meeter
     state_class: measurement
     device_class: current
     unit_of_measurement: A
-    state_topic: linky
+    state_topic: linky/instant-current
+    value_template:  "{{ value_json.data.IRMS }}"
     enabled_by_default: true
-    value_template: >- 
-      {% if value_json.data.IRMS is defined  %}
-        {{ value_json.data.IRMS }}
-      {% else %}
-        {{ this.state }}  
-      {% endif %}
 
   - default_entity_id: sensor.linky_tension
     object_id: linky-meeter-instant-voltage
     unique_id: linky-instant-voltage
     device:
+      identifiers: Linky
+      name: Linky-Meeter
       model: Linky French Home Meeter
       model_id: linky-v3
-      name: Linky-Meeter
     state_class: measurement
     unit_of_measurement: V
     device_class: voltage
-    state_topic: linky
+    state_topic: linky/instant-voltage
+    value_template: "{{ value_json.data.URMS1 }}"
     enabled_by_default: true
-    value_template: >- 
-      {% if value_json.data.URMS1 is defined  %}
-        {{ value_json.data.URMS1 }}
-      {% else %}
-        {{ this.state }}  
-      {% endif %}

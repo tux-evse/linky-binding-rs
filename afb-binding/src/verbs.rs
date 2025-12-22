@@ -16,9 +16,10 @@ use afbv4::prelude::*;
 use linky::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::time::{Duration, Instant};
 
 pub struct SensorNumericData {
-    cycle: u32,
+    stamp: Instant,
     counters: [i32; 4],
 }
 
@@ -37,7 +38,7 @@ impl SensorNumericCtx {
             tic,
             event,
             values: RefCell::new(SensorNumericData {
-                cycle: 0,
+                stamp: Instant::now(),
                 counters: [0; 4],
             }),
         }
@@ -45,7 +46,7 @@ impl SensorNumericCtx {
 
     pub fn updated(
         &self,
-        cycle: u32,
+        cycle: &Option<Duration>,
         data: TicMsg,
         idx: usize,
         value: i32,
@@ -55,21 +56,21 @@ impl SensorNumericCtx {
             Ok(value) => value,
         };
         // increase cycle counter and force event if needed
-        let forced = if cycle > 0 {
-            if values.cycle == cycle {
-                values.cycle = 0;
-                true
-            } else {
-                values.cycle += 1;
-                false
+        let forced = match cycle {
+            None => false,
+            Some(value) => {
+                if values.stamp.elapsed() > *value {
+                    values.stamp = Instant::now();
+                    true
+                } else {
+                    false
+                }
             }
-        } else {
-            false
         };
 
         if value != values.counters[idx] || forced {
             values.counters[idx] = value;
-            values.cycle = 0;
+            values.stamp = Instant::now();
             self.event.push(data);
         }
         Ok(())
@@ -157,7 +158,6 @@ impl SensorStampCtx {
     }
 }
 
-
 pub struct EnergyCountersCtx {
     tic: &'static TicObject,
     event: &'static AfbEvent,
@@ -170,13 +170,19 @@ impl EnergyCountersCtx {
             tic,
             event,
             values: RefCell::new(SensorNumericData {
-                cycle: 0,
+                stamp: Instant::now(),
                 counters: [0; 4],
             }),
         }
     }
 
-    pub fn updated(&self, cycle: u32, data: TicMsg, idx: usize, value: i32) -> Result<(), AfbError> {
+    pub fn updated(
+        &self,
+        cycle: &Option<Duration>,
+        data: TicMsg,
+        idx: usize,
+        value: i32,
+    ) -> Result<(), AfbError> {
         let mut values = match self.values.try_borrow_mut() {
             Err(_) => {
                 return afb_error!("update-energy-ctx-fail", "fail to access energy value ctx")
@@ -184,21 +190,22 @@ impl EnergyCountersCtx {
             Ok(value) => value,
         };
 
-        let forced = if cycle > 0 {
-            if values.cycle == cycle {
-                values.cycle = 0;
-                true
-            } else {
-                values.cycle += 1;
-                false
+         // increase cycle counter and force event if needed
+        let forced = match cycle {
+            None => false,
+            Some(value) => {
+                if values.stamp.elapsed() > *value {
+                    values.stamp = Instant::now();
+                    true
+                } else {
+                    false
+                }
             }
-        } else {
-            false
         };
 
         if value != values.counters[idx] || forced {
             values.counters[idx] = value;
-            values.cycle = 0;
+            values.stamp = Instant::now();
             self.event.push(data);
         }
         Ok(())
@@ -256,7 +263,7 @@ impl SensorRegisterCtx {
 }
 
 struct EventDataCtx {
-    pub cycle: u32,
+    pub cycle: Option<Duration>,
     pub handle: LinkyHandle,
     pub event: &'static AfbEvent,
     pub iinst: Option<Rc<SensorNumericCtx>>,
@@ -333,47 +340,45 @@ fn async_msg_cb(
                         TicMsg::IGNORED => continue,
 
                         // over power
-                        TicMsg::ADPS(value) => _profile_num_update!(adsp, 0, ctx.cycle, value),
-                        TicMsg::ADIR1(value) => _profile_num_update!(adsp, 1, ctx.cycle, value),
-                        TicMsg::ADIR2(value) => _profile_num_update!(adsp, 2, ctx.cycle, value),
-                        TicMsg::ADIR3(value) => _profile_num_update!(adsp, 3, ctx.cycle, value),
+                        TicMsg::ADPS(value) => _profile_num_update!(adsp, 0, &ctx.cycle, value),
+                        TicMsg::ADIR1(value) => _profile_num_update!(adsp, 1, &ctx.cycle, value),
+                        TicMsg::ADIR2(value) => _profile_num_update!(adsp, 2, &ctx.cycle, value),
+                        TicMsg::ADIR3(value) => _profile_num_update!(adsp, 3, &ctx.cycle, value),
 
                         // cutting power
-                        TicMsg::PCOUP(value) => _profile_num_update!(pcou, 0, ctx.cycle, value),
-                        TicMsg::PREF(value) => _profile_num_update!(pcou, 1, ctx.cycle, value),
+                        TicMsg::PCOUP(value) => _profile_num_update!(pcou, 0, &ctx.cycle, value),
+                        TicMsg::PREF(value) => _profile_num_update!(pcou, 1, &ctx.cycle, value),
 
                         // instant current
-                        TicMsg::IINST(value) => _profile_num_update!(iinst, 0, ctx.cycle, value),
-                        TicMsg::IINST1(value) => _profile_num_update!(iinst, 1, ctx.cycle, value),
-                        TicMsg::IINST2(value) => _profile_num_update!(iinst, 2, ctx.cycle, value),
-                        TicMsg::IINST3(value) => _profile_num_update!(iinst, 3, ctx.cycle, value),
+                        TicMsg::IINST(value) => _profile_num_update!(iinst, 0, &ctx.cycle, value),
+                        TicMsg::IINST1(value) => _profile_num_update!(iinst, 1, &ctx.cycle, value),
+                        TicMsg::IINST2(value) => _profile_num_update!(iinst, 2, &ctx.cycle, value),
+                        TicMsg::IINST3(value) => _profile_num_update!(iinst, 3, &ctx.cycle, value),
 
                         // instant active current
-                        TicMsg::SINSTS(value) => _profile_num_update!(sinsts, 0, ctx.cycle, value),
-                        TicMsg::SINSTS1(value) => _profile_num_update!(sinsts, 1, ctx.cycle, value),
-                        TicMsg::SINSTS2(value) => _profile_num_update!(sinsts, 2, ctx.cycle, value),
-                        TicMsg::SINSTS3(value) => _profile_num_update!(sinsts, 3, ctx.cycle, value),
+                        TicMsg::SINSTS(value) => _profile_num_update!(sinsts, 0, &ctx.cycle, value),
+                        TicMsg::SINSTS1(value) => _profile_num_update!(sinsts, 1, &ctx.cycle, value),
+                        TicMsg::SINSTS2(value) => _profile_num_update!(sinsts, 2, &ctx.cycle, value),
+                        TicMsg::SINSTS3(value) => _profile_num_update!(sinsts, 3, &ctx.cycle, value),
 
                         // efficient current
-                        TicMsg::IRMS1(value) => _profile_num_update!(irms, 0, ctx.cycle, value),
-                        TicMsg::IRMS2(value) => _profile_num_update!(irms, 1, ctx.cycle, value),
-                        TicMsg::IRMS3(value) => _profile_num_update!(irms, 2, ctx.cycle, value),
+                        TicMsg::IRMS1(value) => _profile_num_update!(irms, 0, &ctx.cycle, value),
+                        TicMsg::IRMS2(value) => _profile_num_update!(irms, 1, &ctx.cycle, value),
+                        TicMsg::IRMS3(value) => _profile_num_update!(irms, 2, &ctx.cycle, value),
 
                         // efficient tension
-                        TicMsg::URMS1(value) => _profile_num_update!(urms, 0, ctx.cycle, value),
-                        TicMsg::URMS2(value) => _profile_num_update!(urms, 1, ctx.cycle, value),
-                        TicMsg::URMS3(value) => _profile_num_update!(urms, 2, ctx.cycle, value),
+                        TicMsg::URMS1(value) => _profile_num_update!(urms, 0, &ctx.cycle, value),
+                        TicMsg::URMS2(value) => _profile_num_update!(urms, 1, &ctx.cycle, value),
+                        TicMsg::URMS3(value) => _profile_num_update!(urms, 2, &ctx.cycle, value),
 
                         // Tariff index
-                        TicMsg::NTARF(value) => _profile_num_update!(ntarf, 0, ctx.cycle, value),
-                        TicMsg::NJOURF(value) => _profile_num_update!(njourf, 0, ctx.cycle, value),
-                        TicMsg::NJOURF_T(value) => {
-                            _profile_num_update!(njourf, 1, ctx.cycle, value)
-                        }
+                        TicMsg::NTARF(value) => _profile_num_update!(ntarf, 0, &ctx.cycle, value),
+                        TicMsg::NJOURF(value) => _profile_num_update!(njourf, 0, &ctx.cycle, value),
+                        TicMsg::NJOURF_T(value) => _profile_num_update!(njourf, 1, &ctx.cycle, value),
 
                         // Power Energy meeter
-                        TicMsg::EAST(value) => _profile_num_update!(energy, 0, ctx.cycle, value),
-                        TicMsg::EAIT(value) => _profile_num_update!(energy, 1, ctx.cycle, value),
+                        TicMsg::EAST(value) => _profile_num_update!(energy, 0, &ctx.cycle, value),
+                        TicMsg::EAIT(value) => _profile_num_update!(energy, 1, &ctx.cycle, value),
                         TicMsg::SMAXSN(value) => _profile_ronly_update!(powerin, 0, value),
                         TicMsg::SMAXSN_Y(value) => _profile_ronly_update!(powerin, 1, value),
                         TicMsg::SMAXIN(value) => _profile_ronly_update!(powerout, 0, value),

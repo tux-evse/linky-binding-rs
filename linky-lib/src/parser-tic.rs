@@ -390,52 +390,52 @@ pub struct TicObject {
 impl TicObject {
     pub const STGE: TicObject = TicObject {
         uid: "STGE",
-        name: "Meeter-Register",
+        name: "meeter-register",
         info: "linky meeter status register",
         unit: TicUnit::None,
     };
     pub const UMOY: TicObject = TicObject {
         uid: "UMOY",
-        name: "Average voltage",
+        name: "average-voltage",
         info: "linky meeter status register",
         unit: TicUnit::Volt,
     };
     pub const ENERGY: TicObject = TicObject {
-        uid: "ENERGY",
-        name: "Energy Counter",
+        uid: "energy",
+        name: "energy-counter",
         info: "Total consumes/injected counters average",
         unit: TicUnit::Whour,
     };
     pub const TARIFF: TicObject = TicObject {
-        uid: "TARIFF",
-        name: "Tariff Name",
+        uid: "tarrif",
+        name: "tariff-name",
         info: "current calendar/tariff name",
         unit: TicUnit::None,
     };
 
     pub const MSG: TicObject = TicObject {
-        uid: "MSG",
-        name: "Provider Message",
+        uid: "msg",
+        name: "provider-message",
         info: "Provider short messages",
         unit: TicUnit::None,
     };
 
     pub const POWERIN: TicObject = TicObject {
         uid: "POWERIN",
-        name: "Power In",
+        name: "power-in",
         info: "Max consumed power (Today/Yesterday)",
         unit: TicUnit::VoltAmpere,
     };
 
     pub const POWEROUT: TicObject = TicObject {
         uid: "POWEROUT",
-        name: "Power Out",
+        name: "power-out",
         info: "Max Injected power (today/yesterday)",
         unit: TicUnit::VoltAmpere,
     };
 
     pub const DATE: TicObject = TicObject {
-        uid: "DATE",
+        uid: "today",
         name: "Current-Date",
         info: "Date/time provider",
         unit: TicUnit::Time,
@@ -443,20 +443,20 @@ impl TicObject {
 
     pub const NTARF: TicObject = TicObject {
         uid: "NTARF",
-        name: "Tariff Index",
+        name: "tariff-index",
         info: "provider tariff index",
         unit: TicUnit::None,
     };
 
     pub const NJOURF: TicObject = TicObject {
         uid: "NJOURF",
-        name: "Current-Day",
+        name: "current-day",
         info: "Current day number within provider calendar",
         unit: TicUnit::None,
     };
 
     pub const PROFILE: TicObject = TicObject {
-        uid: "PROFILE",
+        uid: "profiles",
         name: "Next day/pic profile",
         info: "day & pic next profile within provider calendar",
         unit: TicUnit::None,
@@ -464,56 +464,56 @@ impl TicObject {
 
     pub const PCOUP: TicObject = TicObject {
         uid: "PCOUP",
-        name: "Power-Cut",
+        name: "power-cut",
         info: "Max current cutting power",
         unit: TicUnit::VoltAmpere,
     };
 
     pub const RELAIS: TicObject = TicObject {
         uid: "RELAY",
-        name: "Relay-Status",
+        name: "relay-status",
         info: "Current relay position",
         unit: TicUnit::None,
     };
 
     pub const IRMS: TicObject = TicObject {
         uid: "IRMS",
-        name: "effective-current",
+        name: "instant-current",
         info: "courrant efficace par phase",
         unit: TicUnit::Ampere,
     };
 
     pub const URMS: TicObject = TicObject {
         uid: "URMS",
-        name: "effective-tension",
+        name: "instant-voltage",
         info: "tension efficace par phase",
         unit: TicUnit::Volt,
     };
 
     pub const ADSC: TicObject = TicObject {
         uid: "ADSC",
-        name: "Meeter-Adress",
+        name: "meeter-address",
         info: "Linky meeter address code",
         unit: TicUnit::None,
     };
 
     pub const ADPS: TicObject = TicObject {
         uid: "ADPS",
-        name: "Over-Power",
+        name: "over-power",
         info: "Over consumption signal",
         unit: TicUnit::Ampere,
     };
 
     pub const IINST: TicObject = TicObject {
         uid: "IINST",
-        name: "Instant-Current",
+        name: "instant-current",
         info: "Current intensity (A)",
         unit: TicUnit::Ampere,
     };
 
     pub const SINSTS: TicObject = TicObject {
         uid: "SINSTS",
-        name: "Instant-Power",
+        name: "instant-power",
         info: "Current Power (VA)",
         unit: TicUnit::VoltAmpere,
     };
