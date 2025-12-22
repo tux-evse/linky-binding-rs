@@ -11,7 +11,8 @@
             "request": "launch",
             "program": "/usr/bin/afb-binder",
             "env": {
-                "LD_LIBRARY_PATH": "${workspaceFolder}/target/debug"
+                "LD_LIBRARY_PATH": "${workspaceFolder}/target/debug",
+                "BASEDIR": "${workspaceFolder}/afb-binding"
             },
             "args": [
                 "-vv",
@@ -31,7 +32,8 @@
             "request": "launch",
             "program": "/usr/bin/afb-binder",
             "env": {
-                "LD_LIBRARY_PATH": "${workspaceFolder}/target/debug"
+                "LD_LIBRARY_PATH": "${workspaceFolder}/target/debug",
+                "BASEDIR": "${workspaceFolder}/afb-binding"
             },
             "args": [
                 "-vv",

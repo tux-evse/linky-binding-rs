@@ -1,10 +1,10 @@
 broker-host: fulup-beagle.local
 broker-port: 1883
 broker-user: linky
-broker-pwd: '123456'
+broker-pwd: "$MQTT_PASSWD"
 mapping-type: topic-pair
 publish-topic: linky
-publish-uid: true
+publish-extend: true
 to-mqtt:
   event:
     # auto-register to following events
